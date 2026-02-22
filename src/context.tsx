@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { CartItem, Order, Product, User, PRODUCTS, Promo, ChokiPointTransaction, AdvancedConfig, DEFAULT_CONFIG } from './types';
+import { CartItem, Order, Product, User, PRODUCTS, Promo, ChokiPointTransaction, AdvancedConfig, DEFAULT_CONFIG, CustomLanding } from './types';
 import { toast } from 'sonner';
 import { auth, db } from './firebase';
 import { formatCurrency } from './utils';
@@ -82,6 +82,8 @@ interface AppContextType {
   setHighlightedProductIds: (ids: string[]) => void;
   advancedConfig: AdvancedConfig;
   updateAdvancedConfig: (config: Partial<AdvancedConfig>) => Promise<void>;
+  addCustomLanding: (landing: Omit<CustomLanding, 'id'>) => Promise<CustomLanding>;
+  deleteCustomLanding: (id: string) => Promise<void>;
   getAppliedPromo: () => Promo | null;
 }
 
@@ -101,6 +103,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [highlightedProductIds, setHighlightedProductIds] = useState<string[]>([]);
   const [advancedConfig, setAdvancedConfig] = useState<AdvancedConfig>(DEFAULT_CONFIG);
+
+  const addCustomLanding = async (landing: Omit<CustomLanding, 'id'>) => {
+    if (!db) throw new Error('DB not initialized');
+    const id = Math.random().toString(36).substr(2, 9);
+    const newLanding = { ...landing, id };
+    const nextLandings = [...(advancedConfig.landings || []), newLanding];
+    await updateAdvancedConfig({ landings: nextLandings });
+    return newLanding;
+  };
+
+  const deleteCustomLanding = async (id: string) => {
+    if (!db) return;
+    const nextLandings = advancedConfig.landings.filter(l => l.id !== id);
+    await updateAdvancedConfig({ landings: nextLandings });
+  };
 
   // Theme Effect
   useEffect(() => {
@@ -426,6 +443,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         history: updatedHistory,
       });
 
+      // Friendly Notification
+      sendNotification('¡Pedido Recibido! 🍫', {
+        body: `¡Hola ${user.name}! Hemos recibido tu pedido. ¡Pronto estará listo!`,
+        icon: '/pwa-192x192.png'
+      });
+
       clearCart();
       setIsCartOpen(false);
       setActiveTab('orders'); 
@@ -558,12 +581,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (status === 'completed' && order.status !== 'completed') {
         let newPoints = uData.points;
         let newPointHistory = uData.pointHistory;
+        let pointsEarned = 0;
 
         if (!order.isRedemption) {
-          newPoints += order.pointsEarned;
+          pointsEarned = order.pointsEarned;
+          newPoints += pointsEarned;
           const newTx: ChokiPointTransaction = {
             id: `tx-${Date.now()}`,
-            amount: order.pointsEarned,
+            amount: pointsEarned,
             type: 'earned',
             description: `Puntos por pedido #${orderId.slice(-6)}`,
             date: new Date().toISOString()
@@ -577,9 +602,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           history: updatedHistory
         });
         
-        // Trigger System Notification
-        sendNotification('¡Pedido Completado!', {
-          body: `Tu pedido #${orderId.slice(-6)} ha sido pagado. ¡Disfrútalo!`,
+        sendNotification('¡Pedido Entregado! ✨', {
+          body: `¡Gracias por tu compra, ${uData.name}! Has ganado ${pointsEarned} ChokiPoints. ¡Disfrútalos!`,
           icon: '/pwa-192x192.png'
         });
       } else {
@@ -587,8 +611,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         await updateDoc(userRef, { history: updatedHistory });
         
         if (status === 'prepared') {
-          sendNotification('¡Pedido Preparado!', {
-            body: `Tu pedido #${orderId.slice(-6)} está listo para entrega/recogida.`,
+          sendNotification('¡Tu pedido está listo! 🚀', {
+            body: `¡Hola ${uData.name}! Tu pedido ya está preparado. ¡Está delicioso!`,
             icon: '/pwa-192x192.png'
           });
         }
@@ -796,6 +820,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setHighlightedProductIds,
       advancedConfig,
       updateAdvancedConfig,
+      addCustomLanding,
+      deleteCustomLanding,
       getAppliedPromo
     }}>
       {children}

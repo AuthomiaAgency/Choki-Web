@@ -78,18 +78,20 @@ export interface User {
   lastNameChange?: string;
 }
 
+export interface CustomLanding {
+  id: string;
+  name: string;
+  welcomeMessage: string;
+  buttonText: string;
+  slug: string; // For the URL
+}
+
 export interface AdvancedConfig {
-  landingName: string;
-  landingWelcome: string;
-  landingButtonText: string;
-  showLanding: boolean;
+  landings: CustomLanding[];
 }
 
 export const DEFAULT_CONFIG: AdvancedConfig = {
-  landingName: 'Choki Lover',
-  landingWelcome: 'Bienvenido a la experiencia Choki',
-  landingButtonText: 'Instalar Aquí',
-  showLanding: false
+  landings: []
 };
 
 export const PRODUCTS: Product[] = [

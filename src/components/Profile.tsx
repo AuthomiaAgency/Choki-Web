@@ -1,11 +1,14 @@
 import { useApp } from '../context';
-import { User, Award, History, LogOut, Moon, Sun, Settings, PieChart as PieChartIcon, Share2, Download } from 'lucide-react';
-import { motion } from 'motion/react';
+import { User, Award, History, LogOut, Moon, Sun, Settings, PieChart as PieChartIcon, Share2, Download, Plus, Trash2, Copy, ExternalLink, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { formatCurrency } from '../utils';
 import { toast } from 'sonner';
+import { useState } from 'react';
 
 export function Profile() {
-  const { user, orders, theme, toggleTheme, logout, setActiveTab, getTotalRevenue } = useApp();
+  const { user, orders, theme, toggleTheme, logout, setActiveTab, getTotalRevenue, advancedConfig, addCustomLanding, deleteCustomLanding } = useApp();
+  const [isCreatingLanding, setIsCreatingLanding] = useState(false);
+  const [newLanding, setNewLanding] = useState({ name: '', welcomeMessage: '', buttonText: '', slug: '' });
 
   if (!user) return null;
 
@@ -14,11 +17,32 @@ export function Profile() {
   const progress = Math.min(100, (user.points % 150) / 150 * 100);
   const canRedeem = user.points >= 150;
   const revenue = getTotalRevenue();
+  
+  const handleShareDirectInstall = () => {
+    const url = `${window.location.origin}?install=true`;
+    navigator.clipboard.writeText(url);
+    toast.success('Enlace de instalación directa copiado');
+  };
 
-  const handleShareAPK = () => {
-    const apkUrl = window.location.origin; // Or a specific direct download link if available
-    navigator.clipboard.writeText(apkUrl);
-    toast.success('Enlace de descarga copiado al portapapeles');
+  const handleCreateLanding = async () => {
+    if (!newLanding.name || !newLanding.slug) {
+      toast.error('Nombre y URL son requeridos');
+      return;
+    }
+    try {
+      await addCustomLanding(newLanding);
+      setNewLanding({ name: '', welcomeMessage: '', buttonText: '', slug: '' });
+      setIsCreatingLanding(false);
+      toast.success('Landing creada con éxito');
+    } catch (e: any) {
+      toast.error('Error al crear landing');
+    }
+  };
+
+  const handleShareLanding = (slug: string) => {
+    const url = `${window.location.origin}?landing=${slug}`;
+    navigator.clipboard.writeText(url);
+    toast.success('Enlace de landing copiado');
   };
 
   return (
@@ -136,16 +160,129 @@ export function Profile() {
               </button>
 
               <button 
-                onClick={handleShareAPK}
+                onClick={handleShareDirectInstall}
                 className="w-full py-4 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center gap-3 text-white font-display font-bold hover:bg-white/10 transition-all active:scale-95"
               >
-                <Share2 size={20} />
-                Compartir Enlace APK
+                <Download size={20} />
+                Copiar Link de Instalación Directa
               </button>
             </div>
           )}
         </div>
       </motion.div>
+
+      {/* Admin Advanced Config Section */}
+      {isAdmin && (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-neutral-900 dark:bg-neutral-800 rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-8 border border-white/10 dark:border-white/5 shadow-xl mb-8"
+        >
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-lg font-display font-bold text-white">Páginas Personalizadas</h2>
+              <p className="text-xs text-neutral-400">Crea experiencias únicas para tus clientes</p>
+            </div>
+            <button 
+              onClick={() => setIsCreatingLanding(true)}
+              className="bg-primary text-neutral-950 p-3 rounded-xl hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20"
+            >
+              <Plus size={20} />
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            {advancedConfig?.landings?.map((landing) => (
+              <div key={landing.id} className="bg-white/5 rounded-2xl p-4 border border-white/5 flex items-center justify-between group hover:border-primary/30 transition-colors">
+                <div>
+                  <h3 className="font-bold text-white">{landing.name}</h3>
+                  <p className="text-[10px] text-neutral-500 font-mono mt-1">/{landing.slug}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => handleShareLanding(landing.slug)}
+                    className="p-2 text-neutral-400 hover:text-primary hover:bg-white/5 rounded-lg transition-colors"
+                    title="Copiar Enlace"
+                  >
+                    <Copy size={16} />
+                  </button>
+                  <button 
+                    onClick={() => deleteCustomLanding(landing.id)}
+                    className="p-2 text-neutral-400 hover:text-red-500 hover:bg-white/5 rounded-lg transition-colors"
+                    title="Eliminar"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            ))}
+            
+            {(!advancedConfig?.landings || advancedConfig.landings.length === 0) && (
+              <div className="text-center py-8 text-neutral-500 text-sm italic border border-dashed border-white/10 rounded-2xl">
+                No hay páginas creadas aún
+              </div>
+            )}
+          </div>
+
+          <AnimatePresence>
+            {isCreatingLanding && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="mt-6 pt-6 border-t border-white/10 space-y-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="text-sm font-bold text-white">Nueva Página</h3>
+                    <button onClick={() => setIsCreatingLanding(false)} className="text-neutral-500 hover:text-white">
+                      <X size={16} />
+                    </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 gap-3">
+                    <input 
+                      type="text" 
+                      placeholder="Nombre (ej: Cliente VIP)" 
+                      value={newLanding.name}
+                      onChange={e => setNewLanding({...newLanding, name: e.target.value})}
+                      className="bg-neutral-950 border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:border-primary/50"
+                    />
+                    <input 
+                      type="text" 
+                      placeholder="Slug URL (ej: vip-promo)" 
+                      value={newLanding.slug}
+                      onChange={e => setNewLanding({...newLanding, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})}
+                      className="bg-neutral-950 border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:border-primary/50"
+                    />
+                    <input 
+                      type="text" 
+                      placeholder="Mensaje de Bienvenida" 
+                      value={newLanding.welcomeMessage}
+                      onChange={e => setNewLanding({...newLanding, welcomeMessage: e.target.value})}
+                      className="bg-neutral-950 border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:border-primary/50"
+                    />
+                    <input 
+                      type="text" 
+                      placeholder="Texto del Botón (ej: Descargar)" 
+                      value={newLanding.buttonText}
+                      onChange={e => setNewLanding({...newLanding, buttonText: e.target.value})}
+                      className="bg-neutral-950 border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:border-primary/50"
+                    />
+                  </div>
+                  
+                  <button 
+                    onClick={handleCreateLanding}
+                    className="w-full py-3 bg-primary text-neutral-950 font-bold rounded-xl hover:bg-primary/90 transition-colors"
+                  >
+                    Crear Página
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      )}
 
       {/* Settings List */}
       <div className="grid grid-cols-1 gap-3 mb-8">

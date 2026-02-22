@@ -1,19 +1,39 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { useApp } from '../context';
-import { Download, Sparkles, Heart, Star, Coffee } from 'lucide-react';
+import { Download, Sparkles, Heart, Star, Coffee, Cookie, IceCream, Candy } from 'lucide-react';
 
-export function LandingPage() {
+export interface LandingPageProps {
+  config?: {
+    name: string;
+    welcomeMessage: string;
+    buttonText: string;
+  };
+  onComplete?: () => void;
+}
+
+export function LandingPage({ config, onComplete }: LandingPageProps) {
   const { advancedConfig } = useApp();
+  const activeConfig = config || {
+    name: advancedConfig.landingName || 'Choki Lover',
+    welcomeMessage: advancedConfig.landingWelcome || 'Bienvenido a la experiencia Choki',
+    buttonText: advancedConfig.landingButtonText || 'Instalar Aquí'
+  };
 
-  const handleInstall = () => {
-    // Trigger PWA install prompt if available
-    const event = new Event('beforeinstallprompt');
-    window.dispatchEvent(event);
-    // Note: True direct install without prompt is not possible in browsers for security,
-    // but we can trigger the prompt if we have the saved event.
-    // For now, we'll show a message or try to trigger the standard prompt.
-    alert('Iniciando descarga de Choki App...');
+  const handleInstall = async () => {
+    // Try to trigger PWA install
+    const promptEvent = (window as any).deferredPrompt;
+    if (promptEvent) {
+      promptEvent.prompt();
+      const { outcome } = await promptEvent.userChoice;
+      if (outcome === 'accepted') {
+        (window as any).deferredPrompt = null;
+      }
+    } else {
+      // Fallback or just simulate
+      alert('Para instalar: \niOS: Compartir -> Agregar a Inicio\nAndroid: Menú -> Instalar Aplicación');
+    }
+    if (onComplete) onComplete();
   };
 
   const floatingIcons = [
@@ -21,6 +41,9 @@ export function LandingPage() {
     { Icon: Star, color: 'text-yellow-400', delay: 1 },
     { Icon: Sparkles, color: 'text-primary', delay: 2 },
     { Icon: Coffee, color: 'text-amber-600', delay: 3 },
+    { Icon: Cookie, color: 'text-orange-400', delay: 1.5 },
+    { Icon: IceCream, color: 'text-pink-300', delay: 2.5 },
+    { Icon: Candy, color: 'text-red-400', delay: 0.5 },
   ];
 
   return (
@@ -95,10 +118,10 @@ export function LandingPage() {
           className="space-y-4"
         >
           <h1 className="text-4xl sm:text-6xl font-display font-bold text-white tracking-tight">
-            Hola, <span className="text-primary">{advancedConfig.landingName}</span>
+            Hola, <span className="text-primary">{activeConfig.name}</span>
           </h1>
           <p className="text-xl sm:text-2xl text-neutral-400 font-medium max-w-md mx-auto leading-relaxed">
-            {advancedConfig.landingWelcome}
+            {activeConfig.welcomeMessage}
           </p>
         </motion.div>
 
@@ -112,14 +135,14 @@ export function LandingPage() {
           className="mt-12 bg-primary text-neutral-950 px-10 py-5 rounded-2xl font-display font-bold text-xl flex items-center gap-3 shadow-2xl shadow-primary/30 group"
         >
           <Download size={24} className="group-hover:bounce" />
-          {advancedConfig.landingButtonText}
+          {activeConfig.buttonText}
         </motion.button>
 
         <motion.button
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.5 }}
           transition={{ delay: 1.5 }}
-          onClick={() => window.location.reload()}
+          onClick={onComplete || (() => window.location.reload())}
           className="mt-8 text-neutral-500 text-sm font-bold uppercase tracking-widest hover:opacity-100 transition-opacity"
         >
           Continuar a la web

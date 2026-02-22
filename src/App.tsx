@@ -26,16 +26,60 @@ function AppContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [showLanding, setShowLanding] = useState(false);
+  const [landingConfig, setLandingConfig] = useState<any>(null);
+
+  // Redirect admin to orders if on home
+  useState(() => {
+    if (user?.role === 'admin' && activeTab === 'home') {
+      setActiveTab('admin-orders');
+    }
+  });
 
   useState(() => {
-    if (advancedConfig?.showLanding) {
+    const params = new URLSearchParams(window.location.search);
+    const landingSlug = params.get('landing');
+    const isInstall = params.get('install');
+
+    if (isInstall) {
+      setLandingConfig({
+        name: 'Choki App',
+        welcomeMessage: 'Instala nuestra App oficial para la mejor experiencia',
+        buttonText: 'Instalar Ahora'
+      });
+      setShowLanding(true);
+      return;
+    }
+
+    if (landingSlug && advancedConfig?.landings) {
+      const config = advancedConfig.landings.find(l => l.slug === landingSlug);
+      if (config) {
+        setLandingConfig(config);
+        setShowLanding(true);
+      }
+    } else if (advancedConfig?.showLanding) {
       const hasSeenLanding = sessionStorage.getItem('hasSeenLanding');
       if (!hasSeenLanding) {
+        // Use first custom landing or default if none
+        if (advancedConfig.landings && advancedConfig.landings.length > 0) {
+          setLandingConfig(advancedConfig.landings[0]);
+        } else {
+           setLandingConfig({
+             name: 'Choki Lover',
+             welcomeMessage: 'Bienvenido a la experiencia Choki',
+             buttonText: 'Instalar Aquí'
+           });
+        }
         setShowLanding(true);
         sessionStorage.setItem('hasSeenLanding', 'true');
       }
     }
   });
+
+  const handleLandingComplete = () => {
+    setShowLanding(false);
+    // Clear query params without refresh
+    window.history.replaceState({}, '', window.location.pathname);
+  };
 
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -87,7 +131,12 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 font-sans pb-32 transition-colors duration-300">
       <AnimatePresence>
-        {showLanding && <LandingPage />}
+        {showLanding && landingConfig && (
+          <LandingPage 
+            config={landingConfig} 
+            onComplete={handleLandingComplete} 
+          />
+        )}
       </AnimatePresence>
       {/* Top Bar */}
       <header className="sticky top-0 z-30 bg-neutral-50/80 dark:bg-neutral-950/80 backdrop-blur-md px-4 sm:px-6 py-4 flex items-center justify-between border-b border-neutral-200 dark:border-white/5 transition-colors duration-300">
