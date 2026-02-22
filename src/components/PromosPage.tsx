@@ -5,8 +5,19 @@ import { motion } from 'motion/react';
 import { formatCurrency } from '../utils';
 
 export function PromosPage() {
-  const { promos, setActiveTab } = useApp();
+  const { promos, setActiveTab, setHighlightedProductIds } = useApp();
   const activePromos = promos.filter(p => p.active);
+
+  const handleGoToShop = (promo: any) => {
+    if (promo.condition?.type === 'product_id' && promo.condition.target) {
+      setHighlightedProductIds([promo.condition.target]);
+      setTimeout(() => setHighlightedProductIds([]), 3000); // Clear after 3s
+    } else if (promo.productIds && promo.productIds.length > 0) {
+      setHighlightedProductIds(promo.productIds);
+      setTimeout(() => setHighlightedProductIds([]), 3000);
+    }
+    setActiveTab('home');
+  };
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 pb-32">
@@ -55,7 +66,7 @@ export function PromosPage() {
                 
                 <div className="flex flex-col sm:flex-row items-center gap-4">
                   <button 
-                    onClick={() => setActiveTab('home')}
+                    onClick={() => handleGoToShop(promo)}
                     className="w-full sm:w-auto px-8 py-4 bg-primary text-neutral-950 font-display font-bold rounded-2xl shadow-lg shadow-primary/20 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all text-sm sm:text-base"
                   >
                     Ir a Tienda

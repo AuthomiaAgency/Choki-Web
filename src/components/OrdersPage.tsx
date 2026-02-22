@@ -41,8 +41,8 @@ export function OrdersPage() {
   const getStatusText = (status: string) => {
     switch (status) {
       case 'pending': return 'Pendiente';
-      case 'prepared': return 'Preparado';
-      case 'completed': return 'Listo';
+      case 'prepared': return 'PREPARADO';
+      case 'completed': return 'PAGADO';
       case 'cancelled': return 'Cancelado';
       default: return status;
     }
@@ -110,7 +110,9 @@ export function OrdersPage() {
                   >
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <p className="text-[9px] text-neutral-400 uppercase tracking-widest font-bold mb-0.5">#{order.id.slice(-6)}</p>
+                        <p className="text-[9px] text-neutral-400 uppercase tracking-widest font-bold mb-0.5">
+                          {order.isRedemption ? 'CANJE' : 'PEDIDO'} #{order.id.slice(-6)}
+                        </p>
                         <p className="text-[10px] text-neutral-500 font-medium">
                           {new Date(order.date).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' })} • {new Date(order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </p>
@@ -132,19 +134,27 @@ export function OrdersPage() {
                       {order.items.map(item => (
                         <div key={item.id} className="flex justify-between text-xs">
                           <span className="text-neutral-600 dark:text-neutral-400 font-medium">{item.quantity}x {item.name}</span>
-                          <span className="font-bold text-neutral-900 dark:text-white">{formatCurrency(item.price * item.quantity)}</span>
+                          <span className="font-bold text-neutral-900 dark:text-white">
+                            {order.isRedemption ? `${order.pointsCost} pts` : formatCurrency(item.price * item.quantity)}
+                          </span>
                         </div>
                       ))}
                     </div>
 
                     <div className="pt-4 border-t border-neutral-100 dark:border-white/5 flex justify-between items-end">
                       <div>
-                        <p className="text-[9px] text-neutral-400 uppercase tracking-widest font-bold mb-0.5">Puntos</p>
-                        <p className="text-emerald-500 font-display font-bold text-sm">+{order.pointsEarned}</p>
+                        {!order.isRedemption && (
+                          <>
+                            <p className="text-[9px] text-neutral-400 uppercase tracking-widest font-bold mb-0.5">Puntos</p>
+                            <p className="text-emerald-500 font-display font-bold text-sm">+{order.pointsEarned}</p>
+                          </>
+                        )}
                       </div>
                       <div className="text-right">
                         <p className="text-[9px] text-neutral-400 uppercase tracking-widest font-bold mb-0.5">Total</p>
-                        <p className="text-lg font-display font-bold text-primary">{formatCurrency(order.total)}</p>
+                        <p className="text-lg font-display font-bold text-primary">
+                          {order.isRedemption ? `${order.pointsCost} pts` : formatCurrency(order.total)}
+                        </p>
                       </div>
                     </div>
 
@@ -197,9 +207,11 @@ export function OrdersPage() {
                         <p className="text-[9px] text-neutral-500">{new Date(order.date).toLocaleDateString()}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-display font-bold text-neutral-900 dark:text-white text-xs">{formatCurrency(order.total)}</p>
+                        <p className="font-display font-bold text-neutral-900 dark:text-white text-xs">
+                          {order.isRedemption ? `${order.pointsCost} pts` : formatCurrency(order.total)}
+                        </p>
                         <p className={`text-[9px] font-bold uppercase ${order.status === 'completed' ? 'text-emerald-500' : 'text-red-500'}`}>
-                          {order.status === 'completed' ? 'Completado' : 'Cancelado'}
+                          {order.status === 'completed' ? 'PAGADO' : 'Cancelado'}
                         </p>
                       </div>
                     </div>

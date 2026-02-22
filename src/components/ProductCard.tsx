@@ -12,8 +12,9 @@ interface ProductCardProps {
 }
 
 export const ProductCard: FC<ProductCardProps> = ({ product, onClick }) => {
-  const { addToCart, user } = useApp();
+  const { addToCart, user, highlightedProductIds } = useApp();
   const isAdmin = user?.role === 'admin';
+  const isHighlighted = highlightedProductIds.includes(product.id);
 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -24,8 +25,15 @@ export const ProductCard: FC<ProductCardProps> = ({ product, onClick }) => {
     <motion.div
       layoutId={`product-${product.id}`}
       whileTap={{ scale: 0.98 }}
-      className="group relative bg-white dark:bg-neutral-900 rounded-[1.5rem] sm:rounded-[2rem] overflow-hidden border border-neutral-200 dark:border-white/5 shadow-lg sm:shadow-xl cursor-default flex flex-col h-full transition-all hover:shadow-2xl hover:shadow-primary/5"
+      className={`group relative bg-white dark:bg-neutral-900 rounded-[1.5rem] sm:rounded-[2rem] overflow-hidden border shadow-lg sm:shadow-xl cursor-default flex flex-col h-full transition-all hover:shadow-2xl hover:shadow-primary/5 ${
+        isHighlighted 
+          ? 'border-primary shadow-primary/30 ring-2 ring-primary/50 scale-[1.02]' 
+          : 'border-neutral-200 dark:border-white/5'
+      }`}
     >
+      {isHighlighted && (
+        <div className="absolute inset-0 bg-primary/5 z-0 pointer-events-none animate-pulse" />
+      )}
       <div 
         onClick={onClick}
         className="aspect-square overflow-hidden relative cursor-pointer p-3 sm:p-4"

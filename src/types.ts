@@ -25,6 +25,8 @@ export interface Order {
   date: string;
   hasPromo?: boolean;
   pointsEarned: number;
+  isRedemption?: boolean;
+  pointsCost?: number;
 }
 
 export interface ChokiPointTransaction {

@@ -483,24 +483,30 @@ export function AdminPanel() {
             <div key={order.id} className="bg-neutral-900 border border-white/5 rounded-[2rem] p-6">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <p className="text-[9px] text-neutral-500 uppercase tracking-widest font-bold mb-0.5">#{order.id.slice(-6)}</p>
+                  <p className="text-[9px] text-neutral-500 uppercase tracking-widest font-bold mb-0.5">
+                    {order.isRedemption ? 'CANJE' : 'PEDIDO'} #{order.id.slice(-6)}
+                  </p>
                   <h3 className="text-lg font-display font-bold">{order.userName}</h3>
                 </div>
                 <div className="text-right">
-                  <p className="text-xl font-display font-bold text-primary">{formatCurrency(order.total)}</p>
+                  <p className="text-xl font-display font-bold text-primary">
+                    {order.isRedemption ? `${order.pointsCost} pts` : formatCurrency(order.total)}
+                  </p>
                   {order.hasPromo && <span className="text-[9px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold uppercase">Promo</span>}
                 </div>
               </div>
 
               <div className="space-y-1 mb-6">
-                {order.items.map(item => {
+                {order.items.map((item, idx) => {
                   const productExists = products.some(p => p.id === item.id);
                   return (
-                    <div key={item.id} className="flex justify-between text-xs text-neutral-400">
+                    <div key={`${item.id}-${idx}`} className="flex justify-between text-xs text-neutral-400">
                       <span className={productExists ? "" : "text-red-500 font-bold"}>
                         {item.quantity}x {item.name} {!productExists && "(ELIMINADO)"}
                       </span>
-                      <span>{formatCurrency(item.price * item.quantity)}</span>
+                      <span>
+                        {order.isRedemption ? `${order.pointsCost} pts` : formatCurrency(item.price * item.quantity)}
+                      </span>
                     </div>
                   );
                 })}
@@ -508,27 +514,29 @@ export function AdminPanel() {
 
               <div className="flex gap-2">
                 {order.status === 'pending' && (
-                  <button 
-                    onClick={() => updateOrderStatus(order.id, 'prepared')}
-                    className="flex-1 py-3 bg-blue-500 text-white font-display font-bold rounded-xl shadow-lg shadow-blue-500/20 active:scale-95 transition-all text-sm"
-                  >
-                    Preparado
-                  </button>
+                  <>
+                    <button 
+                      onClick={() => updateOrderStatus(order.id, 'prepared')}
+                      className="flex-1 py-3 bg-blue-500 text-white font-display font-bold rounded-xl shadow-lg shadow-blue-500/20 active:scale-95 transition-all text-sm"
+                    >
+                      Preparado
+                    </button>
+                    <button 
+                      onClick={() => updateOrderStatus(order.id, 'cancelled')}
+                      className="px-4 py-3 bg-red-500/10 text-red-500 font-display font-bold rounded-xl hover:bg-red-500/20 active:scale-95 transition-all text-sm"
+                    >
+                      Cancelar
+                    </button>
+                  </>
                 )}
                 {order.status === 'prepared' && (
                   <button 
                     onClick={() => updateOrderStatus(order.id, 'completed')}
                     className="flex-1 py-3 bg-emerald-500 text-white font-display font-bold rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-all text-sm"
                   >
-                    Completar
+                    Pagado
                   </button>
                 )}
-                <button 
-                  onClick={() => updateOrderStatus(order.id, 'cancelled')}
-                  className="px-4 py-3 bg-red-500/10 text-red-500 font-display font-bold rounded-xl hover:bg-red-500/20 active:scale-95 transition-all text-sm"
-                >
-                  Cancelar
-                </button>
               </div>
             </div>
           ))}

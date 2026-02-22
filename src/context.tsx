@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { CartItem, Order, Product, User, PRODUCTS, Promo, ChokiPointTransaction } from './types';
 import { toast } from 'sonner';
 import { auth, db } from './firebase';
+import { formatCurrency } from './utils';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
@@ -73,6 +74,8 @@ interface AppContextType {
   toggleRole: () => void;
   isAuthMode: 'login' | 'register';
   setIsAuthMode: (mode: 'login' | 'register') => void;
+  highlightedProductIds: string[];
+  setHighlightedProductIds: (ids: string[]) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -89,6 +92,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [isAuthMode, setIsAuthMode] = useState<'login' | 'register'>('login');
   const [justAdded, setJustAdded] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [highlightedProductIds, setHighlightedProductIds] = useState<string[]>([]);
 
   // Theme Effect
   useEffect(() => {
@@ -454,14 +458,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       await updateDoc(doc(db, 'orders', orderId), { status });
       
-      // If completed, give points to user
       const order = orders.find(o => o.id === orderId);
-      if (order && (status === 'completed') && order.status !== 'completed') {
-        const userRef = doc(db, 'users', order.userId);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-          const uData = userSnap.data() as User;
-          const newPoints = uData.points + order.pointsEarned;
+      if (!order) return;
+
+      const userRef = doc(db, 'users', order.userId);
+      const userSnap = await getDoc(userRef);
+      if (!userSnap.exists()) return;
+      const uData = userSnap.data() as User;
+
+      // Handle Completed (Pagado)
+      if (status === 'completed' && order.status !== 'completed') {
+        let message = '';
+        let newPoints = uData.points;
+        let newPointHistory = uData.pointHistory;
+
+        if (order.isRedemption) {
+          message = `Espero hayas disfrutado tu canje de ${order.pointsCost} chokipoints ✨`;
+        } else {
+          newPoints += order.pointsEarned;
           const newTx: ChokiPointTransaction = {
             id: `tx-${Date.now()}`,
             amount: order.pointsEarned,
@@ -469,38 +483,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
             description: `Puntos por pedido #${orderId.slice(-6)}`,
             date: new Date().toISOString()
           };
-          
-          const notification = {
-             id: `n-${Date.now()}`,
-             message: `¡LISTO, YA TIENES ${order.pointsEarned} CHOKIPOINTS!! ✨`,
-             date: new Date().toISOString(),
-             expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString()
-          };
-
-          await updateDoc(userRef, {
-            points: newPoints,
-            pointHistory: [newTx, ...uData.pointHistory],
-            notifications: [notification, ...uData.notifications]
-          });
+          newPointHistory = [newTx, ...uData.pointHistory];
+          message = `¡LISTO, YA TIENES ${order.pointsEarned} CHOKIPOINTS!! ✨`;
         }
+
+        const notification = {
+           id: `n-${Date.now()}`,
+           message,
+           date: new Date().toISOString(),
+           expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30 mins
+        };
+
+        await updateDoc(userRef, {
+          points: newPoints,
+          pointHistory: newPointHistory,
+          notifications: [notification, ...uData.notifications]
+        });
       }
       
-      if (order && status === 'prepared') {
-         // Notify user
-         const userRef = doc(db, 'users', order.userId);
-         const userSnap = await getDoc(userRef);
-         if (userSnap.exists()) {
-            const uData = userSnap.data() as User;
-            const notification = {
-               id: `n-${Date.now()}`,
-               message: '¡Tu pedido está PREPARADO! 📦',
-               date: new Date().toISOString(),
-               expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString()
-            };
-            await updateDoc(userRef, {
-               notifications: [notification, ...uData.notifications]
-            });
-         }
+      // Handle Prepared
+      if (status === 'prepared') {
+         const notification = {
+            id: `n-${Date.now()}`,
+            message: '¡Tu pedido está PREPARADO! 📦',
+            date: new Date().toISOString(),
+            expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString()
+         };
+         await updateDoc(userRef, {
+            notifications: [notification, ...uData.notifications]
+         });
       }
 
     } catch (e: any) {
@@ -524,13 +535,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
       date: new Date().toISOString()
     };
 
+    const redemptionOrder: Order = {
+      id: `ord-red-${Date.now()}`,
+      userId: user.id,
+      userName: user.name,
+      items: [{ ...product, quantity: 1 }],
+      total: 0,
+      status: 'pending',
+      date: new Date().toISOString(),
+      hasPromo: false,
+      pointsEarned: 0,
+      isRedemption: true,
+      pointsCost: cost
+    };
+
     try {
       await updateDoc(doc(db, 'users', user.id), {
         points: user.points - cost,
-        pointHistory: [tx, ...user.pointHistory]
+        pointHistory: [tx, ...user.pointHistory],
+        history: [redemptionOrder, ...user.history].slice(0, 50)
       });
+      
+      await setDoc(doc(db, 'orders', redemptionOrder.id), redemptionOrder);
+
       toast.success(`¡Premio canjeado!`, {
-        description: `Disfruta tu ${product.name}`,
+        description: `Disfruta tu ${product.name}. Revisa tus pedidos.`,
       });
     } catch (e: any) {
       toast.error('Error al canjear: ' + e.message);
@@ -672,7 +701,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       getTotalRevenue,
       getSectorizedSales,
       isAuthMode,
-      setIsAuthMode
+      setIsAuthMode,
+      highlightedProductIds,
+      setHighlightedProductIds
     }}>
       {children}
     </AppContext.Provider>

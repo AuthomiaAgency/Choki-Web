@@ -27,6 +27,7 @@ export function CartDrawer() {
       // Check Condition
       let conditionMet = false;
       let applicableTotal = 0;
+      let multiplier = 0;
 
       if (condition.type === 'product_id') {
         const targetItem = cart.find(item => item.id === condition.target);
@@ -35,18 +36,21 @@ export function CartDrawer() {
           applicableTotal = targetItem.price * targetItem.quantity;
           if (applicableQuantity >= condition.threshold) {
             conditionMet = true;
+            multiplier = Math.floor(applicableQuantity / condition.threshold);
           }
         }
       } else if (condition.type === 'min_total') {
         if (subtotal >= condition.threshold) {
           conditionMet = true;
           applicableTotal = subtotal;
+          multiplier = Math.floor(subtotal / condition.threshold);
         }
       } else if (condition.type === 'min_quantity') {
         const totalQty = cart.reduce((sum, item) => sum + item.quantity, 0);
         if (totalQty >= condition.threshold) {
           conditionMet = true;
           applicableTotal = subtotal;
+          multiplier = Math.floor(totalQty / condition.threshold);
         }
       }
 
@@ -56,7 +60,7 @@ export function CartDrawer() {
           // Apply to applicable total (specific product or subtotal)
           currentDiscount = applicableTotal * (reward.value / 100);
         } else if (reward.type === 'discount_fixed') {
-          currentDiscount = reward.value;
+          currentDiscount = reward.value * multiplier;
         }
         // Bonus points are handled in placeOrder, not as a discount
       }

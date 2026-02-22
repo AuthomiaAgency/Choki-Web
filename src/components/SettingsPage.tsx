@@ -111,12 +111,26 @@ export function SettingsPage() {
                 className="w-full h-full object-cover rounded-[2rem]"
               />
             </div>
-            <label className="absolute bottom-0 right-0 bg-primary text-neutral-950 p-3 rounded-2xl shadow-lg cursor-pointer hover:scale-110 active:scale-95 transition-all border-4 border-neutral-50 dark:border-neutral-950">
-              <Camera size={20} />
-              <input type="file" className="hidden" accept="image/*" onChange={handlePhotoChange} />
-            </label>
           </div>
-          <p className="mt-4 text-xs text-neutral-500 font-bold uppercase tracking-widest">Toca para cambiar foto</p>
+          <p className="mt-4 text-xs text-neutral-500 font-bold uppercase tracking-widest mb-4">Elige tu avatar</p>
+          
+          <div className="grid grid-cols-5 gap-3">
+            {Array.from({ length: 10 }).map((_, i) => {
+              const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${i + 123}`;
+              return (
+                <button
+                  key={i}
+                  onClick={() => {
+                    updateUser({ avatar: avatarUrl });
+                    toast.success('Avatar actualizado');
+                  }}
+                  className={`w-12 h-12 rounded-xl overflow-hidden border-2 transition-all ${user?.avatar === avatarUrl ? 'border-primary scale-110 shadow-lg shadow-primary/20' : 'border-transparent hover:border-white/20'}`}
+                >
+                  <img src={avatarUrl} alt={`Avatar ${i}`} className="w-full h-full object-cover" />
+                </button>
+              );
+            })}
+          </div>
         </section>
 
         {/* Appearance */}
