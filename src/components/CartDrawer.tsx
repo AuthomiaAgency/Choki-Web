@@ -122,24 +122,37 @@ export function CartDrawer() {
                   {/* Applied Promo Indicator */}
                   {appliedPromoData && (
                     <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="bg-primary/10 border border-primary/20 p-4 rounded-2xl flex items-center justify-between"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="bg-gradient-to-r from-primary/20 to-emerald-500/20 border-2 border-primary/30 p-4 rounded-2xl flex items-center justify-between shadow-lg shadow-primary/5 relative overflow-hidden"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center text-primary">
-                          <Tag size={20} />
+                      <div className="absolute inset-0 bg-white/5 backdrop-blur-sm z-0" />
+                      <div className="relative z-10 flex items-center gap-4">
+                        <div className="w-12 h-12 bg-gradient-to-br from-primary to-orange-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/30 rotate-3">
+                          <Tag size={24} strokeWidth={2.5} />
                         </div>
                         <div>
-                          <p className="text-primary font-display font-bold text-sm">{promoName}</p>
-                          <p className="text-[10px] text-primary/60">¡Promo aplicada!</p>
+                          <p className="text-primary font-display font-bold text-lg leading-tight">{promoName}</p>
+                          <p className="text-xs text-neutral-300 font-medium">¡Promoción aplicada!</p>
                           {extraPoints > 0 && (
-                            <p className="text-[10px] text-emerald-500 font-bold">+{extraPoints} Puntos Extra</p>
+                            <div className="flex items-center gap-1 mt-1 text-emerald-400 font-bold text-xs bg-emerald-500/10 px-2 py-0.5 rounded-lg w-fit border border-emerald-500/20">
+                              <Plus size={10} />
+                              {extraPoints} Puntos Extra
+                            </div>
                           )}
                         </div>
                       </div>
-                      <div className="text-primary font-bold">
-                        {discount > 0 ? `-${formatCurrency(discount)}` : '¡Puntos!'}
+                      <div className="relative z-10 text-right">
+                        {discount > 0 ? (
+                          <div className="flex flex-col items-end">
+                            <span className="text-[10px] text-neutral-400 uppercase font-bold tracking-wider">Ahorras</span>
+                            <span className="text-2xl font-display font-bold text-emerald-400 drop-shadow-sm">-{formatCurrency(discount)}</span>
+                          </div>
+                        ) : (
+                          <div className="bg-primary text-neutral-950 px-3 py-1 rounded-lg font-bold text-xs shadow-lg shadow-primary/20">
+                            ¡Puntos!
+                          </div>
+                        )}
                       </div>
                     </motion.div>
                   )}

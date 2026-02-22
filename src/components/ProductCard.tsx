@@ -1,7 +1,7 @@
 import { motion } from 'motion/react';
 import { Product } from '../types';
 import { formatCurrency } from '../utils';
-import { Plus, Heart } from 'lucide-react';
+import { Plus, Heart, Tag } from 'lucide-react';
 import { FC } from 'react';
 import React from 'react';
 import { useApp } from '../context';
@@ -12,9 +12,16 @@ interface ProductCardProps {
 }
 
 export const ProductCard: FC<ProductCardProps> = ({ product, onClick }) => {
-  const { addToCart, user, highlightedProductIds } = useApp();
+  const { addToCart, user, highlightedProductIds, promos } = useApp();
   const isAdmin = user?.role === 'admin';
   const isHighlighted = highlightedProductIds.includes(product.id);
+  
+  const hasActivePromo = promos.some(p => 
+    p.active && (
+      (p.condition.type === 'product_id' && p.condition.target === product.id) ||
+      (p.condition.type === 'product_list' && p.condition.targets?.includes(product.id))
+    )
+  );
 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -47,6 +54,13 @@ export const ProductCard: FC<ProductCardProps> = ({ product, onClick }) => {
         {product.stock < 20 && (
           <div className="absolute top-4 right-4 sm:top-6 sm:right-6 bg-red-500/90 backdrop-blur-md px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-lg border border-white/10 shadow-sm z-10">
             <span className="text-[7px] sm:text-[8px] font-bold text-white uppercase font-display">¡Últimos!</span>
+          </div>
+        )}
+        
+        {hasActivePromo && (
+          <div className="absolute top-4 left-4 sm:top-6 sm:left-6 bg-gradient-to-r from-primary to-orange-600 text-white px-2 py-1 rounded-lg shadow-lg shadow-primary/20 z-10 flex items-center gap-1">
+            <Tag size={10} className="fill-white/20" />
+            <span className="text-[8px] sm:text-[9px] font-bold uppercase font-display tracking-wider">Promo</span>
           </div>
         )}
       </div>

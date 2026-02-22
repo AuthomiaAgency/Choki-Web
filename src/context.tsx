@@ -431,20 +431,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
               const item = cart.find(i => i.id === condition.target);
               if (item) {
                 const originalSetPrice = item.price * condition.threshold;
-                const promoSetPrice = reward.promoPrice || 0;
-                savings = (originalSetPrice - promoSetPrice) * multiplier;
+                // Fallback to reward.value if promoPrice is missing (legacy/UI compat)
+                const promoSetPrice = (reward.promoPrice !== undefined && reward.promoPrice !== 0) ? reward.promoPrice : (reward.value || 0);
+                
+                // Only apply if it's actually a discount (promo price < original price)
+                if (promoSetPrice < originalSetPrice && promoSetPrice > 0) {
+                   savings = (originalSetPrice - promoSetPrice) * multiplier;
+                }
               }
            } else if (condition.type === 'product_list') {
               // For product list, we need to find the items that make up the set.
-              // We will take the items in the cart that match, calculate their total price,
-              // and subtract the promo price * multiplier.
-              // To be fair, we should probably take the items that maximize/minimize savings?
-              // Let's assume it applies to the *total* of matching items, but that's risky if they bought more than the threshold.
-              // Correct approach: Take the first (threshold * multiplier) items found.
               let countNeeded = condition.threshold * multiplier;
               let originalPriceTotal = 0;
               const matchingItems = cart.filter(item => condition.targets?.includes(item.id));
               
+              // Sort by price descending to maximize savings? Or ascending?
+              // Usually promos apply to specific items. Let's just take them in order.
               for (const item of matchingItems) {
                  const qtyToTake = Math.min(item.quantity, countNeeded);
                  originalPriceTotal += item.price * qtyToTake;
@@ -452,8 +454,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
                  if (countNeeded <= 0) break;
               }
               
-              const promoTotal = (reward.promoPrice || 0) * multiplier;
-              savings = originalPriceTotal - promoTotal;
+              const promoSetPrice = (reward.promoPrice !== undefined && reward.promoPrice !== 0) ? reward.promoPrice : (reward.value || 0);
+              const promoTotal = promoSetPrice * multiplier;
+              
+              if (promoTotal < originalPriceTotal && promoTotal > 0) {
+                 savings = originalPriceTotal - promoTotal;
+              }
            }
         } else if (reward.type === 'bonus_points') {
            points = (reward.value || 0) * multiplier;

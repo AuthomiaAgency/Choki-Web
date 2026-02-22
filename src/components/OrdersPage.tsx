@@ -159,6 +159,25 @@ export function OrdersPage() {
                           )}
                         </div>
                       ))}
+                      {/* Show Discount if exists */}
+                      {!order.isRedemption && order.hasPromo && (
+                         <div className="mt-3 bg-gradient-to-r from-primary/10 to-emerald-500/10 border border-primary/20 rounded-xl p-3 flex items-center justify-between relative overflow-hidden">
+                            <div className="absolute inset-0 bg-white/5 backdrop-blur-sm z-0" />
+                            <div className="relative z-10 flex items-center gap-2">
+                              <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center text-primary">
+                                <Tag size={16} />
+                              </div>
+                              <div>
+                                <p className="text-xs font-bold text-primary">{order.appliedPromoName}</p>
+                                <p className="text-[9px] text-neutral-500 font-medium">Promo aplicada</p>
+                              </div>
+                            </div>
+                            <span className="relative z-10 text-emerald-500 font-display font-bold text-lg">
+                               {/* Calculate discount amount for display */}
+                               -{formatCurrency(order.items.reduce((s, i) => s + i.price * i.quantity, 0) - order.total)}
+                            </span>
+                         </div>
+                      )}
                     </div>
 
                     <div className="pt-4 border-t border-neutral-100 dark:border-white/5 flex justify-between items-end">

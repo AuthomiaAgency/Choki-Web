@@ -192,94 +192,113 @@ export function Profile() {
             </button>
           </div>
 
-          <div className="space-y-4">
-            {advancedConfig?.landings?.map((landing) => (
-              <div key={landing.id} className="bg-white/5 rounded-2xl p-4 border border-white/5 flex items-center justify-between group hover:border-primary/30 transition-colors">
-                <div>
-                  <h3 className="font-bold text-white">{landing.name}</h3>
-                  <p className="text-[10px] text-neutral-500 font-mono mt-1">/{landing.slug}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => {
-                      const url = `${window.location.origin}?landing=${landing.slug}&install=true`;
-                      navigator.clipboard.writeText(url);
-                      toast.success('Enlace de descarga directa copiado');
-                    }}
-                    className="p-2 text-neutral-400 hover:text-primary hover:bg-white/5 rounded-lg transition-colors"
-                    title="Copiar Enlace de Descarga"
-                  >
-                    <Copy size={16} />
-                  </button>
-                  <button 
-                    onClick={() => deleteCustomLanding(landing.id)}
-                    className="p-2 text-neutral-400 hover:text-red-500 hover:bg-white/5 rounded-lg transition-colors"
-                    title="Eliminar"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
-            ))}
-            
-            {(!advancedConfig?.landings || advancedConfig.landings.length === 0) && (
-              <div className="text-center py-8 text-neutral-500 text-sm italic border border-dashed border-white/10 rounded-2xl">
-                No hay enlaces creados aún
-              </div>
-            )}
-          </div>
+                  <div className="space-y-4">
+                    {advancedConfig?.landings?.map((landing) => (
+                      <div key={landing.id} className="bg-white/5 rounded-2xl p-4 border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group hover:border-primary/30 transition-colors">
+                        <div className="overflow-hidden">
+                          <h3 className="font-bold text-white text-lg">{landing.name}</h3>
+                          <div className="flex items-center gap-2 mt-1 bg-black/20 p-2 rounded-lg border border-white/5 w-fit max-w-full">
+                            <ExternalLink size={12} className="text-primary shrink-0" />
+                            <p className="text-[10px] text-neutral-400 font-mono truncate">
+                              {window.location.origin}?landing={landing.slug}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button 
+                            onClick={() => {
+                              const url = `${window.location.origin}?landing=${landing.slug}&install=true`;
+                              navigator.clipboard.writeText(url);
+                              toast.success('Enlace de descarga directa copiado');
+                            }}
+                            className="flex items-center gap-2 px-3 py-2 bg-primary/10 text-primary hover:bg-primary/20 rounded-xl font-bold text-xs transition-colors"
+                            title="Copiar Enlace de Descarga"
+                          >
+                            <Copy size={14} />
+                            Copiar URL
+                          </button>
+                          <button 
+                            onClick={() => deleteCustomLanding(landing.id)}
+                            className="p-2 text-neutral-400 hover:text-red-500 hover:bg-white/5 rounded-xl transition-colors"
+                            title="Eliminar"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {(!advancedConfig?.landings || advancedConfig.landings.length === 0) && (
+                      <div className="text-center py-8 text-neutral-500 text-sm italic border border-dashed border-white/10 rounded-2xl">
+                        No hay enlaces creados aún. Crea uno para compartir tu App.
+                      </div>
+                    )}
+                  </div>
 
-          <AnimatePresence>
-            {isCreatingLanding && (
-              <motion.div 
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="overflow-hidden"
-              >
-                <div className="mt-6 pt-6 border-t border-white/10 space-y-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <h3 className="text-sm font-bold text-white">Nuevo Enlace Personalizado</h3>
-                    <button onClick={() => setIsCreatingLanding(false)} className="text-neutral-500 hover:text-white">
-                      <X size={16} />
-                    </button>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 gap-3">
-                    <input 
-                      type="text" 
-                      placeholder="Nombre del Grupo/Persona (ej: Familia)" 
-                      value={newLanding.name}
-                      onChange={e => setNewLanding({...newLanding, name: e.target.value})}
-                      className="bg-neutral-950 border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:border-primary/50"
-                    />
-                    {/* Slug is now auto-generated */}
-                    <input 
-                      type="text" 
-                      placeholder="Mensaje de Bienvenida (Opcional)" 
-                      value={newLanding.welcomeMessage}
-                      onChange={e => setNewLanding({...newLanding, welcomeMessage: e.target.value})}
-                      className="bg-neutral-950 border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:border-primary/50"
-                    />
-                    <input 
-                      type="text" 
-                      placeholder="Texto del Botón (ej: Instalar App)" 
-                      value={newLanding.buttonText}
-                      onChange={e => setNewLanding({...newLanding, buttonText: e.target.value})}
-                      className="bg-neutral-950 border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:border-primary/50"
-                    />
-                  </div>
-                  
-                  <button 
-                    onClick={handleCreateLanding}
-                    className="w-full py-3 bg-primary text-neutral-950 font-bold rounded-xl hover:bg-primary/90 transition-colors"
-                  >
-                    Crear Enlace de Descarga
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                  <AnimatePresence>
+                    {isCreatingLanding && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="mt-6 pt-6 border-t border-white/10 space-y-4 bg-white/5 p-6 rounded-3xl border border-white/5">
+                          <div className="flex justify-between items-center mb-2">
+                            <div>
+                              <h3 className="text-base font-bold text-white">Nuevo Enlace Personalizado</h3>
+                              <p className="text-xs text-neutral-400">El sistema generará automáticamente una URL única para ti.</p>
+                            </div>
+                            <button onClick={() => setIsCreatingLanding(false)} className="bg-neutral-800 p-2 rounded-full text-neutral-400 hover:text-white transition-colors">
+                              <X size={16} />
+                            </button>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 gap-4">
+                            <div>
+                              <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1.5 block">Nombre de la Página</label>
+                              <input 
+                                type="text" 
+                                placeholder="Ej: Familia Perez, Amigos del Trabajo..." 
+                                value={newLanding.name}
+                                onChange={e => setNewLanding({...newLanding, name: e.target.value})}
+                                className="w-full bg-neutral-950 border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all placeholder:text-neutral-600"
+                              />
+                            </div>
+                            
+                            <div>
+                              <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1.5 block">Mensaje de Bienvenida (Opcional)</label>
+                              <input 
+                                type="text" 
+                                placeholder="Ej: ¡Bienvenidos a la experiencia más dulce!" 
+                                value={newLanding.welcomeMessage}
+                                onChange={e => setNewLanding({...newLanding, welcomeMessage: e.target.value})}
+                                className="w-full bg-neutral-950 border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all placeholder:text-neutral-600"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1.5 block">Texto del Botón (Opcional)</label>
+                              <input 
+                                type="text" 
+                                placeholder="Ej: Instalar App Ahora" 
+                                value={newLanding.buttonText}
+                                onChange={e => setNewLanding({...newLanding, buttonText: e.target.value})}
+                                className="w-full bg-neutral-950 border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all placeholder:text-neutral-600"
+                              />
+                            </div>
+                          </div>
+                          
+                          <button 
+                            onClick={handleCreateLanding}
+                            className="w-full py-4 bg-primary text-neutral-950 font-display font-bold text-lg rounded-2xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 active:scale-[0.98]"
+                          >
+                            Generar Enlace
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
         </motion.div>
       )}
 
