@@ -54,6 +54,9 @@ interface AppContextType {
   toggleCart: () => void;
   placeOrder: (hasPromo?: boolean) => Promise<void>;
   cancelOrder: (orderId: string) => Promise<void>;
+  hideOrder: (orderId: string) => Promise<void>;
+  requestNotificationPermission: () => Promise<void>;
+  sendNotification: (title: string, options?: NotificationOptions) => void;
   toggleTheme: () => void;
   redeemPoints: (product: Product) => void;
   getTotalRevenue: () => number;
@@ -414,14 +417,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const cancelOrder = async (orderId: string) => {
     if (!user || !db) return;
+    
+    // Check if order is prepared
     const order = orders.find(o => o.id === orderId);
-    if (!order) return;
+    if (order?.status === 'prepared') {
+      toast.error('No se puede cancelar un pedido que ya está preparado.');
+      return;
+    }
 
     try {
       await updateDoc(doc(db, 'orders', orderId), { status: 'cancelled' });
       
       // Check for penalty
-      const orderDate = new Date(order.date);
+      const orderDate = new Date(order?.date || Date.now());
       const now = new Date();
       const diffHours = (now.getTime() - orderDate.getTime()) / (1000 * 60 * 60);
       
@@ -453,6 +461,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const hideOrder = async (orderId: string) => {
+    if (!user || !db) return;
+    try {
+      const newHistory = user.history.filter(o => o.id !== orderId);
+      await updateDoc(doc(db, 'users', user.id), {
+        history: newHistory
+      });
+      toast.success('Pedido eliminado del historial');
+    } catch (e: any) {
+      toast.error('Error al eliminar: ' + e.message);
+    }
+  };
+
+  const requestNotificationPermission = async () => {
+    if (!('Notification' in window)) return;
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      toast.success('Notificaciones activadas');
+    }
+  };
+
+  const sendNotification = (title: string, options?: NotificationOptions) => {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'granted') {
+      new Notification(title, options);
+    }
+  };
+
   const updateOrderStatus = async (orderId: string, status: Order['status']) => {
     if (!db) return;
     try {
@@ -468,13 +504,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       // Handle Completed (Pagado)
       if (status === 'completed' && order.status !== 'completed') {
-        let message = '';
         let newPoints = uData.points;
         let newPointHistory = uData.pointHistory;
 
-        if (order.isRedemption) {
-          message = `Espero hayas disfrutado tu canje de ${order.pointsCost} chokipoints ✨`;
-        } else {
+        if (!order.isRedemption) {
           newPoints += order.pointsEarned;
           const newTx: ChokiPointTransaction = {
             id: `tx-${Date.now()}`,
@@ -484,33 +517,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
             date: new Date().toISOString()
           };
           newPointHistory = [newTx, ...uData.pointHistory];
-          message = `¡LISTO, YA TIENES ${order.pointsEarned} CHOKIPOINTS!! ✨`;
         }
 
-        const notification = {
-           id: `n-${Date.now()}`,
-           message,
-           date: new Date().toISOString(),
-           expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30 mins
-        };
+        // Update user points and history
+        const updatedHistory = uData.history.map(h => 
+          h.id === orderId ? { ...h, status: 'completed' } : h
+        );
 
         await updateDoc(userRef, {
           points: newPoints,
           pointHistory: newPointHistory,
-          notifications: [notification, ...uData.notifications]
+          history: updatedHistory
+        });
+        
+        // Trigger System Notification
+        sendNotification('¡Pedido Completado!', {
+          body: `Tu pedido #${orderId.slice(-6)} ha sido pagado. ¡Disfrútalo!`,
+          icon: '/pwa-192x192.png'
         });
       }
       
       // Handle Prepared
       if (status === 'prepared') {
-         const notification = {
-            id: `n-${Date.now()}`,
-            message: '¡Tu pedido está PREPARADO! 📦',
-            date: new Date().toISOString(),
-            expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString()
-         };
-         await updateDoc(userRef, {
-            notifications: [notification, ...uData.notifications]
+         const updatedHistory = uData.history.map(h => 
+          h.id === orderId ? { ...h, status: 'prepared' } : h
+         );
+         await updateDoc(userRef, { history: updatedHistory });
+
+         // Trigger System Notification
+         sendNotification('¡Pedido Preparado!', {
+            body: `Tu pedido #${orderId.slice(-6)} está listo para entrega/recogida.`,
+            icon: '/pwa-192x192.png'
          });
       }
 
@@ -687,6 +724,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       toggleCart,
       placeOrder,
       cancelOrder,
+      hideOrder,
+      requestNotificationPermission,
+      sendNotification,
       updateOrderStatus,
       setActiveTab,
       toggleRole,

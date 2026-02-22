@@ -35,7 +35,7 @@ function AppContent() {
   const isAdmin = user.role === 'admin';
 
   // Admin View Logic
-  if (isAdmin && (activeTab === 'admin-orders' || activeTab === 'admin-shop' || activeTab === 'admin-promos' || activeTab === 'home')) {
+  if (isAdmin && (activeTab.startsWith('admin-') || activeTab === 'home')) {
     return (
       <div className="min-h-screen bg-neutral-950 text-neutral-100 font-sans pb-safe">
         <AdminPanel />
@@ -49,6 +49,16 @@ function AppContent() {
     return (
       <>
         <CheckoutPage />
+        <Toaster position="top-center" richColors />
+      </>
+    );
+  }
+
+  if (activeTab === 'orders') {
+    return (
+      <>
+        <OrdersPage />
+        <Navbar />
         <Toaster position="top-center" richColors />
       </>
     );
@@ -121,7 +131,6 @@ function AppContent() {
 
         {activeTab === 'promos' && <PromosPage />}
         {activeTab === 'profile' && <Profile />}
-        {activeTab === 'orders' && <OrdersPage />}
         {activeTab === 'settings' && <SettingsPage />}
         {activeTab === 'chokistorial' && <ChokistorialPage />}
         {activeTab === 'rewards' && <RewardsPage />}

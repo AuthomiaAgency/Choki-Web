@@ -512,14 +512,14 @@ export function AdminPanel() {
                 })}
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex gap-2 mt-4">
                 {order.status === 'pending' && (
                   <>
                     <button 
                       onClick={() => updateOrderStatus(order.id, 'prepared')}
-                      className="flex-1 py-3 bg-blue-500 text-white font-display font-bold rounded-xl shadow-lg shadow-blue-500/20 active:scale-95 transition-all text-sm"
+                      className="flex-1 py-3 bg-blue-500 text-white font-display font-bold rounded-xl shadow-lg shadow-blue-500/20 hover:bg-blue-600 active:scale-95 transition-all text-sm"
                     >
-                      Preparado
+                      Marcar Preparado
                     </button>
                     <button 
                       onClick={() => updateOrderStatus(order.id, 'cancelled')}
@@ -532,9 +532,9 @@ export function AdminPanel() {
                 {order.status === 'prepared' && (
                   <button 
                     onClick={() => updateOrderStatus(order.id, 'completed')}
-                    className="flex-1 py-3 bg-emerald-500 text-white font-display font-bold rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-all text-sm"
+                    className="flex-1 py-3 bg-emerald-500 text-white font-display font-bold rounded-xl shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 active:scale-95 transition-all text-sm"
                   >
-                    Pagado
+                    Marcar Pagado
                   </button>
                 )}
               </div>
