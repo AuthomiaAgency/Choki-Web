@@ -220,7 +220,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return true;
     } catch (error: any) {
       if (error.code === 'auth/popup-closed-by-user') {
-        // User closed the popup, no need to show an error
+        return false;
+      }
+      if (error.code === 'auth/unauthorized-domain') {
+        toast.error(`Dominio no autorizado: ${window.location.hostname}`);
+        console.error(`Agrega "${window.location.hostname}" a Authorized Domains en Firebase Console -> Auth -> Settings`);
         return false;
       }
       toast.error('Error con Google: ' + error.message);
