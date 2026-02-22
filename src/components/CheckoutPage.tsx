@@ -113,32 +113,6 @@ export function CheckoutPage() {
       </header>
 
       <main className="px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
-        {/* Promo Toggle - Only show if applicable */}
-        {applicablePromo && (
-          <section>
-            <div className="bg-emerald-500/10 border-2 border-emerald-500/20 rounded-3xl p-4 sm:p-6 flex items-center justify-between">
-              <div className="flex items-center gap-3 sm:gap-4">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
-                  <Tag size={20} sm:size={24} />
-                </div>
-                <div>
-                  <p className="font-display font-bold text-neutral-900 dark:text-white text-sm sm:text-base">ChokiPromo Aplicada</p>
-                  <p className="text-[10px] sm:text-xs text-neutral-500">¡Estás ahorrando {formatCurrency(discount)}!</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setHasPromo(!hasPromo)}
-                className={`w-12 h-7 sm:w-14 sm:h-8 rounded-full transition-colors relative ${hasPromo ? 'bg-emerald-500' : 'bg-neutral-300 dark:bg-neutral-700'}`}
-              >
-                <motion.div 
-                  animate={{ x: hasPromo ? 24 : 4 }}
-                  className="absolute top-1 w-5 h-5 sm:w-6 sm:h-6 bg-white rounded-full shadow-md"
-                />
-              </button>
-            </div>
-          </section>
-        )}
-
         {/* Summary */}
         <section>
           <h2 className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.2em] mb-4">Resumen del pedido</h2>

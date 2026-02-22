@@ -1,5 +1,5 @@
 import { useApp } from '../context';
-import { User, Award, History, LogOut, Moon, Sun, Settings } from 'lucide-react';
+import { User, Award, History, LogOut, Moon, Sun, Settings, PieChart as PieChartIcon } from 'lucide-react';
 import { motion } from 'motion/react';
 import { formatCurrency } from '../utils';
 
@@ -104,17 +104,27 @@ export function Profile() {
           )}
 
           {isAdmin && (
-            <div className="mt-4 grid grid-cols-2 gap-4">
-              <div className="bg-white/5 p-3 rounded-2xl border border-white/5">
-                <p className="text-[8px] uppercase tracking-widest opacity-60 mb-1">Pedidos Totales</p>
-                <p className="text-xl font-display font-bold">{orders.length}</p>
+            <div className="mt-6 space-y-3">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white/5 p-3 rounded-2xl border border-white/5">
+                  <p className="text-[8px] uppercase tracking-widest opacity-60 mb-1">Pedidos Totales</p>
+                  <p className="text-xl font-display font-bold">{orders.length}</p>
+                </div>
+                <div className="bg-white/5 p-3 rounded-2xl border border-white/5">
+                  <p className="text-[8px] uppercase tracking-widest opacity-60 mb-1">Completados</p>
+                  <p className="text-xl font-display font-bold text-emerald-400">
+                    {orders.filter(o => o.status === 'completed').length}
+                  </p>
+                </div>
               </div>
-              <div className="bg-white/5 p-3 rounded-2xl border border-white/5">
-                <p className="text-[8px] uppercase tracking-widest opacity-60 mb-1">Completados</p>
-                <p className="text-xl font-display font-bold text-emerald-400">
-                  {orders.filter(o => o.status === 'completed').length}
-                </p>
-              </div>
+              
+              <button 
+                onClick={() => setActiveTab('admin-stats')}
+                className="w-full py-4 bg-primary/10 border border-primary/20 rounded-2xl flex items-center justify-center gap-3 text-primary font-display font-bold hover:bg-primary/20 transition-all active:scale-95"
+              >
+                <PieChartIcon size={20} />
+                Control de Estadísticas
+              </button>
             </div>
           )}
         </div>

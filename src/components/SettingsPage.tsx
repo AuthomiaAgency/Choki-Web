@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context';
-import { ArrowLeft, Camera, User, Mail, Lock, Eye, EyeOff, CheckCircle2, Moon, Sun, Download, Smartphone, Bell } from 'lucide-react';
-import { motion } from 'motion/react';
+import { ArrowLeft, Camera, User, Mail, Lock, Eye, EyeOff, CheckCircle2, Moon, Sun, Download, Smartphone, Bell, ShoppingBag, ChevronDown, ChevronUp, Save, Tag } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 
 export function SettingsPage() {
@@ -15,6 +15,22 @@ export function SettingsPage() {
   const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isPasswordCollapsed, setIsPasswordCollapsed] = useState(true);
+
+  const handleSaveAll = async () => {
+    try {
+      if (name.trim() !== '' && name !== user?.name) {
+        await updateUserName(name);
+      }
+      if (email !== user?.email && !isVerifyingEmail) {
+        // Trigger email verification logic if needed, or just update if simple
+        await updateUser({ email });
+      }
+      setActiveTab('profile');
+    } catch (e: any) {
+      toast.error('Error al guardar: ' + e.message);
+    }
+  };
 
   useEffect(() => {
     const handler = (e: any) => {
@@ -45,7 +61,6 @@ export function SettingsPage() {
       const reader = new FileReader();
       reader.onloadend = () => {
         updateUser({ avatar: reader.result as string });
-        toast.success('Foto de perfil actualizada');
       };
       reader.readAsDataURL(file);
     }
@@ -65,7 +80,6 @@ export function SettingsPage() {
         updateUser({ email });
         setIsVerifyingEmail(false);
         setVerificationCode('');
-        toast.success('Correo electrónico actualizado');
       } else {
         toast.error('Código de verificación incorrecto');
       }
@@ -79,7 +93,6 @@ export function SettingsPage() {
     }
     // Mock verification
     if (currentPass === '1234567890' || currentPass === 'password') {
-      toast.success('Contraseña actualizada correctamente');
       setCurrentPass('');
       setNewPass('');
       setConfirmPass('');
@@ -122,7 +135,6 @@ export function SettingsPage() {
                   key={i}
                   onClick={() => {
                     updateUser({ avatar: avatarUrl });
-                    toast.success('Avatar actualizado');
                   }}
                   className={`w-12 h-12 rounded-xl overflow-hidden border-2 transition-all ${user?.avatar === avatarUrl ? 'border-primary scale-110 shadow-lg shadow-primary/20' : 'border-transparent hover:border-white/20'}`}
                 >
@@ -132,6 +144,37 @@ export function SettingsPage() {
             })}
           </div>
         </section>
+
+        {/* Admin Shop Management */}
+        {user?.role === 'admin' && (
+          <section className="space-y-4">
+            <h2 className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.2em]">Administración</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <button 
+                onClick={() => setActiveTab('admin-shop')}
+                className="flex flex-col items-center justify-center p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl active:scale-[0.98] transition-all gap-2"
+              >
+                <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-white">
+                  <ShoppingBag size={20} />
+                </div>
+                <div className="text-center">
+                  <h3 className="font-display font-bold text-emerald-600 dark:text-emerald-400 text-xs">Productos</h3>
+                </div>
+              </button>
+              <button 
+                onClick={() => setActiveTab('admin-promos')}
+                className="flex flex-col items-center justify-center p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl active:scale-[0.98] transition-all gap-2"
+              >
+                <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center text-white">
+                  <Tag size={20} />
+                </div>
+                <div className="text-center">
+                  <h3 className="font-display font-bold text-amber-600 dark:text-amber-400 text-xs">Promos</h3>
+                </div>
+              </button>
+            </div>
+          </section>
+        )}
 
         {/* Appearance */}
         <section className="space-y-4">
@@ -158,119 +201,6 @@ export function SettingsPage() {
           </button>
         </section>
 
-        {/* Name Update */}
-        <section className="space-y-4">
-          <h2 className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.2em]">Nombre de usuario</h2>
-          <div className="relative">
-            <User className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" size={20} />
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full pl-12 pr-24 py-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-white/5 rounded-2xl focus:ring-2 focus:ring-primary/50 outline-none transition-all dark:text-white font-medium"
-            />
-            <button 
-              onClick={handleNameUpdate}
-              className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 bg-primary text-neutral-950 font-display font-bold text-xs rounded-xl"
-            >
-              Guardar
-            </button>
-          </div>
-          <p className="text-[10px] text-neutral-400 italic">Puedes cambiar tu nombre una vez cada 24 horas.</p>
-          
-          <button 
-            onClick={() => {
-              handleNameUpdate();
-              toast.success('Cambios guardados correctamente');
-            }}
-            className="w-full py-4 bg-primary text-neutral-950 font-display font-bold rounded-2xl shadow-lg shadow-primary/20 transition-all active:scale-95 mt-4"
-          >
-            Guardar cambios
-          </button>
-        </section>
-
-        {/* Email Update */}
-        <section className="space-y-4">
-          <h2 className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.2em]">Correo Electrónico</h2>
-          <div className="space-y-3">
-            <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" size={20} />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isVerifyingEmail}
-                className="w-full pl-12 pr-4 py-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-white/5 rounded-2xl focus:ring-2 focus:ring-primary/50 outline-none transition-all dark:text-white font-medium disabled:opacity-50"
-              />
-            </div>
-            {isVerifyingEmail && (
-              <div className="relative">
-                <CheckCircle2 className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={20} />
-                <input
-                  type="text"
-                  placeholder="Código de 4 dígitos (1234)"
-                  value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 bg-white dark:bg-neutral-900 border-2 border-primary rounded-2xl focus:ring-2 focus:ring-primary/50 outline-none transition-all dark:text-white font-medium"
-                />
-              </div>
-            )}
-            <button 
-              onClick={handleEmailUpdate}
-              className="w-full py-4 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-display font-bold rounded-2xl transition-all active:scale-95"
-            >
-              {isVerifyingEmail ? 'Verificar Código' : 'Cambiar Correo'}
-            </button>
-          </div>
-        </section>
-
-        {/* Password Update */}
-        <section className="space-y-4">
-          <h2 className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.2em]">Seguridad</h2>
-          <div className="bg-white dark:bg-neutral-900 rounded-[2rem] p-6 border border-neutral-200 dark:border-white/5 space-y-4">
-            <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" size={20} />
-              <input
-                type={showPass ? "text" : "password"}
-                placeholder="Contraseña actual"
-                value={currentPass}
-                onChange={(e) => setCurrentPass(e.target.value)}
-                className="w-full pl-12 pr-12 py-4 bg-neutral-50 dark:bg-neutral-800 border border-neutral-100 dark:border-white/5 rounded-xl outline-none dark:text-white"
-              />
-              <button 
-                onClick={() => setShowPass(!showPass)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400"
-              >
-                {showPass ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
-            
-            <div className="grid grid-cols-1 gap-3">
-              <input
-                type="password"
-                placeholder="Nueva contraseña"
-                value={newPass}
-                onChange={(e) => setNewPass(e.target.value)}
-                className="w-full px-4 py-4 bg-neutral-50 dark:bg-neutral-800 border border-neutral-100 dark:border-white/5 rounded-xl outline-none dark:text-white"
-              />
-              <input
-                type="password"
-                placeholder="Confirmar nueva contraseña"
-                value={confirmPass}
-                onChange={(e) => setConfirmPass(e.target.value)}
-                className="w-full px-4 py-4 bg-neutral-50 dark:bg-neutral-800 border border-neutral-100 dark:border-white/5 rounded-xl outline-none dark:text-white"
-              />
-            </div>
-            
-            <button 
-              onClick={handlePasswordUpdate}
-              className="w-full py-4 bg-primary text-neutral-950 font-display font-bold rounded-xl shadow-lg shadow-primary/10 transition-all active:scale-95"
-            >
-              Actualizar Contraseña
-            </button>
-          </div>
-        </section>
-
         {/* Notifications */}
         <section className="space-y-4">
           <h2 className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.2em]">Notificaciones</h2>
@@ -287,10 +217,118 @@ export function SettingsPage() {
                 <p className="text-xs text-neutral-500">Recibe alertas de tus pedidos</p>
               </div>
             </div>
-            <div className="w-12 h-7 rounded-full p-1 bg-neutral-200 dark:bg-neutral-800">
-              <div className="w-5 h-5 bg-white rounded-full shadow-sm" />
+            <div className={`w-12 h-7 rounded-full p-1 transition-colors ${Notification.permission === 'granted' ? 'bg-primary' : 'bg-neutral-200 dark:bg-neutral-800'}`}>
+              <motion.div 
+                className="w-5 h-5 bg-white rounded-full shadow-sm"
+                animate={{ x: Notification.permission === 'granted' ? 20 : 0 }}
+              />
             </div>
           </button>
+        </section>
+
+        {/* Name Update */}
+        <section className="space-y-4">
+          <h2 className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.2em]">Nombre de usuario</h2>
+          <div className="relative">
+            <User className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" size={20} />
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full pl-12 pr-4 py-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-white/5 rounded-2xl focus:ring-2 focus:ring-primary/50 outline-none transition-all dark:text-white font-medium"
+            />
+          </div>
+          <p className="text-[10px] text-neutral-400 italic">Puedes cambiar tu nombre una vez cada 24 horas.</p>
+        </section>
+
+        {/* Email Update */}
+        <section className="space-y-4">
+          <h2 className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.2em]">Correo Electrónico</h2>
+          <div className="space-y-3">
+            <div className="relative">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" size={20} />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isVerifyingEmail}
+                className="w-full pl-12 pr-4 py-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-white/5 rounded-2xl focus:ring-2 focus:ring-primary/50 outline-none transition-all dark:text-white font-medium disabled:opacity-50"
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* Password Update */}
+        <section className="space-y-4">
+          <button 
+            onClick={() => setIsPasswordCollapsed(!isPasswordCollapsed)}
+            className="w-full flex items-center justify-between p-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-white/5 rounded-2xl active:scale-[0.98] transition-all"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-900 dark:text-white">
+                <Lock size={20} />
+              </div>
+              <div className="text-left">
+                <h3 className="font-display font-bold text-neutral-900 dark:text-white">Seguridad</h3>
+                <p className="text-xs text-neutral-500">Cambiar contraseña</p>
+              </div>
+            </div>
+            {isPasswordCollapsed ? <ChevronDown size={20} className="text-neutral-400" /> : <ChevronUp size={20} className="text-neutral-400" />}
+          </button>
+          
+          <AnimatePresence>
+            {!isPasswordCollapsed && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="bg-white dark:bg-neutral-900 rounded-[2rem] p-6 border border-neutral-200 dark:border-white/5 space-y-4 mt-2">
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" size={20} />
+                    <input
+                      type={showPass ? "text" : "password"}
+                      placeholder="Contraseña actual"
+                      value={currentPass}
+                      onChange={(e) => setCurrentPass(e.target.value)}
+                      className="w-full pl-12 pr-12 py-4 bg-neutral-50 dark:bg-neutral-800 border border-neutral-100 dark:border-white/5 rounded-xl outline-none dark:text-white"
+                    />
+                    <button 
+                      onClick={() => setShowPass(!showPass)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400"
+                    >
+                      {showPass ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 gap-3">
+                    <input
+                      type="password"
+                      placeholder="Nueva contraseña"
+                      value={newPass}
+                      onChange={(e) => setNewPass(e.target.value)}
+                      className="w-full px-4 py-4 bg-neutral-50 dark:bg-neutral-800 border border-neutral-100 dark:border-white/5 rounded-xl outline-none dark:text-white"
+                    />
+                    <input
+                      type="password"
+                      placeholder="Confirmar nueva contraseña"
+                      value={confirmPass}
+                      onChange={(e) => setConfirmPass(e.target.value)}
+                      className="w-full px-4 py-4 bg-neutral-50 dark:bg-neutral-800 border border-neutral-100 dark:border-white/5 rounded-xl outline-none dark:text-white"
+                    />
+                  </div>
+                  
+                  <button 
+                    onClick={handlePasswordUpdate}
+                    className="w-full py-4 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-display font-bold rounded-xl shadow-lg transition-all active:scale-95"
+                  >
+                    Actualizar Contraseña
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </section>
 
         {/* App Installation */}
@@ -305,8 +343,8 @@ export function SettingsPage() {
                 <Smartphone size={20} />
               </div>
               <div className="text-left">
-                <h3 className="font-display font-bold text-neutral-900 dark:text-white">Instalar App</h3>
-                <p className="text-xs text-neutral-500">Descarga la versión móvil</p>
+                <h3 className="font-display font-bold text-neutral-900 dark:text-white">Descargar APK</h3>
+                <p className="text-xs text-neutral-500">Instalación directa en Android/iOS</p>
               </div>
             </div>
             <div className="w-10 h-10 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-500">
@@ -314,8 +352,19 @@ export function SettingsPage() {
             </div>
           </button>
           <p className="text-[10px] text-neutral-400 italic text-center">
-            Nota: Para generar un APK nativo, se requiere usar herramientas externas como Capacitor o Android Studio. Esta opción instala la Web App Progresiva (PWA).
+            Instala la aplicación oficial para una experiencia nativa fluida. En iOS, usa "Compartir" {'>'} "Agregar a Inicio".
           </p>
+        </section>
+
+        {/* Final Save Button */}
+        <section className="pt-8">
+          <button 
+            onClick={handleSaveAll}
+            className="w-full py-5 bg-primary text-neutral-950 font-display font-bold rounded-3xl shadow-xl shadow-primary/20 flex items-center justify-center gap-3 active:scale-95 transition-all"
+          >
+            <Save size={20} />
+            Guardar Configuración
+          </button>
         </section>
       </main>
     </div>

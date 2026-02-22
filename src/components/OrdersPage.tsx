@@ -115,12 +115,15 @@ export function OrdersPage() {
                           {status.text}
                         </p>
                         {order.status === 'completed' && (
-                          <p className="text-[10px] text-neutral-600 dark:text-neutral-400 font-medium mt-0.5">
-                            {order.isRedemption 
-                              ? `¡Disfruta tu canje! ✨`
-                              : `¡Ganaste ${order.pointsEarned} ChokiPoints! ✨`
-                            }
-                          </p>
+                          <div className="mt-1 flex items-center gap-1.5">
+                            <PartyPopper size={12} className="text-emerald-500" />
+                            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                              {order.isRedemption 
+                                ? `¡Disfruta tu canje! ✨`
+                                : `Has recibido ${order.pointsEarned} ChokiPoints por tu compra ✨`
+                              }
+                            </p>
+                          </div>
                         )}
                         {order.status === 'prepared' && (
                           <p className="text-[10px] text-neutral-600 dark:text-neutral-400 font-medium mt-0.5">
@@ -134,27 +137,47 @@ export function OrdersPage() {
                       {order.items.map(item => (
                         <div key={item.id} className="flex justify-between text-xs">
                           <span className="text-neutral-600 dark:text-neutral-400 font-medium">{item.quantity}x {item.name}</span>
-                          <span className="font-bold text-neutral-900 dark:text-white">
-                            {order.isRedemption ? `${order.pointsCost} pts` : formatCurrency(item.price * item.quantity)}
-                          </span>
+                          {order.status !== 'completed' && (
+                            <span className="font-bold text-neutral-900 dark:text-white">
+                              {order.isRedemption ? `${order.pointsCost} pts` : formatCurrency(item.price * item.quantity)}
+                            </span>
+                          )}
                         </div>
                       ))}
                     </div>
 
                     <div className="pt-4 border-t border-neutral-100 dark:border-white/5 flex justify-between items-end">
                       <div>
-                        {!order.isRedemption && (
-                          <>
-                            <p className="text-[9px] text-neutral-400 uppercase tracking-widest font-bold mb-0.5">Puntos</p>
-                            <p className="text-emerald-500 font-display font-bold text-sm">+{order.pointsEarned}</p>
-                          </>
+                        {order.status === 'completed' ? (
+                          <div className="flex items-center gap-2 text-emerald-500">
+                            <CheckCircle2 size={24} />
+                            <span className="font-display font-bold text-lg">Entregado</span>
+                          </div>
+                        ) : (
+                          !order.isRedemption && (
+                            <>
+                              <p className="text-[9px] text-neutral-400 uppercase tracking-widest font-bold mb-0.5">Puntos</p>
+                              <p className="text-emerald-500 font-display font-bold text-sm">+{order.pointsEarned}</p>
+                            </>
+                          )
                         )}
                       </div>
                       <div className="text-right">
-                        <p className="text-[9px] text-neutral-400 uppercase tracking-widest font-bold mb-0.5">Total</p>
-                        <p className="text-lg font-display font-bold text-primary">
-                          {order.isRedemption ? `${order.pointsCost} pts` : formatCurrency(order.total)}
-                        </p>
+                        {order.status === 'completed' && !order.isRedemption ? (
+                          <>
+                            <p className="text-[9px] text-neutral-400 uppercase tracking-widest font-bold mb-0.5">Puntos Ganados</p>
+                            <p className="text-emerald-500 font-display font-bold text-lg">+{order.pointsEarned}</p>
+                          </>
+                        ) : (
+                          order.status !== 'completed' && (
+                            <>
+                              <p className="text-[9px] text-neutral-400 uppercase tracking-widest font-bold mb-0.5">Total</p>
+                              <p className="text-lg font-display font-bold text-primary">
+                                {order.isRedemption ? `${order.pointsCost} pts` : formatCurrency(order.total)}
+                              </p>
+                            </>
+                          )
+                        )}
                       </div>
                     </div>
 

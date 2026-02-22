@@ -55,6 +55,7 @@ interface AppContextType {
   placeOrder: (hasPromo?: boolean) => Promise<void>;
   cancelOrder: (orderId: string) => Promise<void>;
   hideOrder: (orderId: string) => Promise<void>;
+  deleteOrder: (orderId: string) => Promise<void>;
   requestNotificationPermission: () => Promise<void>;
   sendNotification: (title: string, options?: NotificationOptions) => void;
   toggleTheme: () => void;
@@ -172,14 +173,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
               const orderTime = new Date(newOrder.date).getTime();
               const now = Date.now();
               if (newOrder.status === 'pending' && (now - orderTime < 10000)) {
-                toast.success(`¡Nuevo pedido de ${newOrder.userName}!`, {
-                  description: `Total: ${formatCurrency(newOrder.total)}`,
-                  duration: 5000,
-                  // icon: <ShoppingBag /> // Icon not imported here, using default or emoji
-                });
+                  // Removed toast for new order as requested
+                }
               }
-            }
-          });
+            });
         }
 
         // Client-side sort for user orders to avoid composite index requirement
@@ -211,7 +208,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, pass: string) => {
     try {
       await signInWithEmailAndPassword(auth, email, pass);
-      toast.success('¡Bienvenido!');
       return true;
     } catch (error: any) {
       toast.error('Error al iniciar sesión: ' + error.message);
@@ -223,7 +219,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
-      toast.success('¡Bienvenido con Google!');
       return true;
     } catch (error: any) {
       if (error.code === 'auth/popup-closed-by-user') {
@@ -257,7 +252,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       };
       
       await setDoc(doc(db, 'users', cred.user.uid), newUser);
-      toast.success('¡Registro exitoso!');
       return true;
     } catch (error: any) {
       toast.error('Error al registrarse: ' + error.message);
@@ -304,7 +298,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       name: newName,
       lastNameChange: now.toISOString()
     });
-    toast.success('Nombre actualizado');
   };
 
   const addToCart = (product: Product, quantity: number) => {
@@ -322,10 +315,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     
     setJustAdded(true);
     setTimeout(() => setJustAdded(false), 1000);
-    
-    toast.success('¡Añadido!', {
-      description: `${quantity}x ${product.name}`,
-    });
   };
 
   const removeFromCart = (productId: string) => {
@@ -406,10 +395,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       clearCart();
       setIsCartOpen(false);
       setActiveTab('orders'); 
-      toast.success('¡Pedido confirmado!', {
-        description: 'Redirigiendo a tus pedidos...',
-        duration: 3000,
-      });
     } catch (e: any) {
       toast.error('Error al realizar pedido: ' + e.message);
     }
@@ -426,7 +411,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      await updateDoc(doc(db, 'orders', orderId), { status: 'cancelled' });
+      await updateDoc(doc(db, 'orders', orderId), { 
+        status: 'cancelled',
+        cancelledBy: 'client'
+      });
       
       // Check for penalty
       const orderDate = new Date(order?.date || Date.now());
@@ -454,8 +442,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // Update local history in user doc
       const updatedHistory = user.history.map(o => o.id === orderId ? { ...o, status: 'cancelled' } : o);
       await updateDoc(doc(db, 'users', user.id), { history: updatedHistory });
-
-      toast.success('Has cancelado el pedido');
     } catch (e: any) {
       toast.error('Error al cancelar: ' + e.message);
     }
@@ -468,7 +454,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
       await updateDoc(doc(db, 'users', user.id), {
         history: newHistory
       });
-      toast.success('Pedido eliminado del historial');
+    } catch (e: any) {
+      toast.error('Error al eliminar: ' + e.message);
+    }
+  };
+
+  const deleteOrder = async (orderId: string) => {
+    if (!db) return;
+    try {
+      // Get order to find user
+      const orderRef = doc(db, 'orders', orderId);
+      const orderSnap = await getDoc(orderRef);
+      
+      if (orderSnap.exists()) {
+        const orderData = orderSnap.data() as Order;
+        const userId = orderData.userId;
+        
+        // Remove from user history
+        const userRef = doc(db, 'users', userId);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          const userData = userSnap.data() as User;
+          const newHistory = userData.history.filter(o => o.id !== orderId);
+          await updateDoc(userRef, { history: newHistory });
+        }
+      }
+
+      await deleteDoc(orderRef);
     } catch (e: any) {
       toast.error('Error al eliminar: ' + e.message);
     }
@@ -477,9 +489,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const requestNotificationPermission = async () => {
     if (!('Notification' in window)) return;
     const permission = await Notification.requestPermission();
-    if (permission === 'granted') {
-      toast.success('Notificaciones activadas');
-    }
   };
 
   const sendNotification = (title: string, options?: NotificationOptions) => {
@@ -492,7 +501,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const updateOrderStatus = async (orderId: string, status: Order['status']) => {
     if (!db) return;
     try {
-      await updateDoc(doc(db, 'orders', orderId), { status });
+      const updateData: any = { status };
+      if (status === 'cancelled') {
+        updateData.cancelledBy = 'admin';
+      }
+      await updateDoc(doc(db, 'orders', orderId), updateData);
       
       const order = orders.find(o => o.id === orderId);
       if (!order) return;
@@ -501,6 +514,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const userSnap = await getDoc(userRef);
       if (!userSnap.exists()) return;
       const uData = userSnap.data() as User;
+
+      // Update local history in user doc
+      const updatedHistory = uData.history.map(h => 
+        h.id === orderId ? { ...h, status } : h
+      );
 
       // Handle Completed (Pagado)
       if (status === 'completed' && order.status !== 'completed') {
@@ -519,11 +537,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
           newPointHistory = [newTx, ...uData.pointHistory];
         }
 
-        // Update user points and history
-        const updatedHistory = uData.history.map(h => 
-          h.id === orderId ? { ...h, status: 'completed' } : h
-        );
-
         await updateDoc(userRef, {
           points: newPoints,
           pointHistory: newPointHistory,
@@ -535,22 +548,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
           body: `Tu pedido #${orderId.slice(-6)} ha sido pagado. ¡Disfrútalo!`,
           icon: '/pwa-192x192.png'
         });
-      }
-      
-      // Handle Prepared
-      if (status === 'prepared') {
-         const updatedHistory = uData.history.map(h => 
-          h.id === orderId ? { ...h, status: 'prepared' } : h
-         );
-         await updateDoc(userRef, { history: updatedHistory });
-
-         // Trigger System Notification
-         sendNotification('¡Pedido Preparado!', {
+      } else {
+        // Just update status for other states
+        await updateDoc(userRef, { history: updatedHistory });
+        
+        if (status === 'prepared') {
+          sendNotification('¡Pedido Preparado!', {
             body: `Tu pedido #${orderId.slice(-6)} está listo para entrega/recogida.`,
             icon: '/pwa-192x192.png'
-         });
+          });
+        }
       }
-
     } catch (e: any) {
       toast.error('Error al actualizar estado: ' + e.message);
     }
@@ -621,7 +629,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const newP = { ...p };
       const docRef = await addDoc(collection(db, 'products'), newP);
       await updateDoc(docRef, { id: docRef.id });
-      toast.success('Producto añadido');
     } catch (e: any) {
       toast.error('Error: ' + e.message);
     }
@@ -631,7 +638,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!db) return;
     try {
       await updateDoc(doc(db, 'products', id), p);
-      toast.success('Producto actualizado');
     } catch (e: any) {
       toast.error('Error: ' + e.message);
     }
@@ -641,7 +647,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!db) return;
     try {
       await deleteDoc(doc(db, 'products', id));
-      toast.error('Producto eliminado');
     } catch (e: any) {
       toast.error('Error: ' + e.message);
     }
@@ -653,7 +658,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       const docRef = await addDoc(collection(db, 'promos'), p);
       await updateDoc(docRef, { id: docRef.id });
-      toast.success('Promoción añadida');
     } catch (e: any) {
       toast.error('Error: ' + e.message);
     }
@@ -663,7 +667,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!db) return;
     try {
       await updateDoc(doc(db, 'promos', id), p);
-      toast.success('Promoción actualizada');
     } catch (e: any) {
       toast.error('Error: ' + e.message);
     }
@@ -673,7 +676,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!db) return;
     try {
       await deleteDoc(doc(db, 'promos', id));
-      toast.error('Promoción eliminada');
     } catch (e: any) {
       toast.error('Error: ' + e.message);
     }
@@ -687,8 +689,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const getSectorizedSales = () => {
     const sales: Record<string, number> = {};
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
     orders
-      .filter(o => o.status === 'completed')
+      .filter(o => o.status === 'completed' && new Date(o.date) >= thirtyDaysAgo)
       .forEach(o => {
         o.items.forEach(item => {
           // Use product name as category since category is removed
@@ -725,6 +730,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       placeOrder,
       cancelOrder,
       hideOrder,
+      deleteOrder,
       requestNotificationPermission,
       sendNotification,
       updateOrderStatus,

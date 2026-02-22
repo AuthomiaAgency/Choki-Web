@@ -22,6 +22,7 @@ export interface Order {
   items: CartItem[];
   total: number;
   status: 'pending' | 'prepared' | 'completed' | 'cancelled';
+  cancelledBy?: 'client' | 'admin';
   date: string;
   hasPromo?: boolean;
   pointsEarned: number;

@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context';
 import { formatCurrency } from '../utils';
-import { CheckCircle, XCircle, Clock, DollarSign, Package, Plus, Edit2, Trash2, Tag, Store, History, Save, X, Image as ImageIcon, List, Upload } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, DollarSign, Package, Plus, Edit2, Trash2, Tag, Store, History, Save, X, Image as ImageIcon, List, Upload, PieChart as PieChartIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Product, Promo, Order } from '../types';
 import { toast } from 'sonner';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 export function AdminPanel() {
   const { 
     products, orders, promos, updateOrderStatus, activeTab, setActiveTab,
-    addProduct, updateProduct, deleteProduct, addPromo, updatePromo, deletePromo
+    addProduct, updateProduct, deleteProduct, addPromo, updatePromo, deletePromo,
+    getSectorizedSales, deleteOrder
   } = useApp();
   
   const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
@@ -18,8 +20,17 @@ export function AdminPanel() {
   const [editingPromo, setEditingPromo] = useState<Partial<Promo> | null>(null);
   const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
 
-  const activeOrders = orders.filter(o => o.status === 'pending' || o.status === 'prepared');
-  const pastOrders = orders.filter(o => o.status === 'completed' || o.status === 'cancelled');
+  const activeOrders = orders.filter(o => 
+    (o.status === 'pending' || o.status === 'prepared') || 
+    (o.status === 'cancelled' && o.cancelledBy === 'admin')
+  );
+  // Filter for statistics: Completed orders only (paid)
+  const completedOrders = orders.filter(o => o.status === 'completed');
+  
+  // Prepare data for Pie Chart
+  const salesData = getSectorizedSales();
+  const pieData: { name: string; value: number }[] = Object.entries(salesData).map(([name, value]) => ({ name, value: value as number }));
+  const COLORS = ['#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1'];
 
   const prevOrdersRef = useRef(orders);
 
@@ -43,6 +54,8 @@ export function AdminPanel() {
 
     prevOrdersRef.current = orders;
   }, [orders]);
+
+  // ... (existing handlers: handleSaveProduct, handleSavePromo, openProductModal, openPromoModal, handleImageUpload)
 
   const handleSaveProduct = (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,6 +127,7 @@ export function AdminPanel() {
     }
   };
 
+  // ... (renderProductModal and renderPromoModal remain unchanged)
   const renderProductModal = () => (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
       <motion.div 
@@ -371,6 +385,113 @@ export function AdminPanel() {
     </div>
   );
 
+  const renderStats = () => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Pie Chart Section */}
+        <div className="bg-neutral-900 border border-white/5 rounded-[2rem] p-6">
+          <h3 className="text-lg font-display font-bold mb-4 flex items-center gap-2">
+            <PieChartIcon size={20} className="text-primary" />
+            Ventas por Producto
+          </h3>
+          <div className="h-64 w-full">
+            {pieData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#171717', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                    itemStyle={{ color: '#fff' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-neutral-500 text-sm">
+                No hay datos de ventas aún
+              </div>
+            )}
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            {pieData.map((entry, index) => (
+              <div key={index} className="flex items-center gap-2 text-xs">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
+                <span className="text-neutral-400 truncate">{entry.name} ({entry.value})</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Product List Section */}
+        <div className="bg-neutral-900 border border-white/5 rounded-[2rem] p-6">
+          <h3 className="text-lg font-display font-bold mb-4 flex items-center gap-2">
+            <List size={20} className="text-emerald-500" />
+            Detalle de Ventas
+          </h3>
+          <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+            {pieData.length > 0 ? pieData.sort((a, b) => b.value - a.value).map((item, idx) => (
+              <div key={idx} className="flex justify-between items-center p-3 bg-neutral-800/50 rounded-xl border border-white/5">
+                <span className="text-sm font-medium text-neutral-300">{item.name}</span>
+                <span className="text-sm font-bold text-white bg-white/10 px-2 py-1 rounded-lg">{item.value} unid.</span>
+              </div>
+            )) : (
+              <div className="text-center text-neutral-500 text-sm py-8">
+                No hay productos vendidos
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Completed Orders List */}
+      <div className="bg-neutral-900 border border-white/5 rounded-[2rem] p-6">
+        <h3 className="text-lg font-display font-bold mb-4 flex items-center gap-2">
+          <CheckCircle size={20} className="text-blue-500" />
+          Pedidos Completados (Ingresos)
+        </h3>
+        <div className="space-y-3">
+          {completedOrders.length > 0 ? completedOrders.slice(0, 10).map(order => (
+            <div key={order.id} className="flex justify-between items-center p-4 bg-neutral-800/30 rounded-xl border border-white/5">
+              <div>
+                <p className="font-bold text-sm text-white">{order.userName}</p>
+                <p className="text-[10px] text-neutral-500">
+                  {new Date(order.date).toLocaleDateString()} • {new Date(order.date).toLocaleTimeString()}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="font-bold text-primary">{formatCurrency(order.total)}</p>
+                <div className="flex items-center justify-end gap-2">
+                  <p className="text-[10px] text-emerald-500">Pagado</p>
+                  <button 
+                    onClick={() => deleteOrder(order.id)}
+                    className="p-1 text-neutral-600 hover:text-red-500 transition-colors"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )) : (
+            <div className="text-center text-neutral-500 text-sm py-8">
+              No hay pedidos completados
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
   const renderShop = () => (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -471,11 +592,11 @@ export function AdminPanel() {
   const renderOrders = () => (
     <div className="space-y-8">
       <section>
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-8 h-8 bg-amber-500/10 text-amber-500 rounded-lg flex items-center justify-center font-bold text-sm">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-display font-bold">Pedidos Activos</h2>
+          <div className="w-10 h-10 bg-amber-500/10 text-amber-500 rounded-2xl flex items-center justify-center font-display font-bold text-lg border border-amber-500/20 shadow-lg shadow-amber-500/5">
             {activeOrders.length}
           </div>
-          <h2 className="text-xl font-display font-bold">Pedidos Activos</h2>
         </div>
         
         <div className="space-y-3">
@@ -542,23 +663,6 @@ export function AdminPanel() {
           ))}
         </div>
       </section>
-
-      <section className="opacity-60">
-        <h2 className="text-lg font-display font-bold mb-4">Historial Reciente</h2>
-        <div className="space-y-2">
-          {pastOrders.slice(0, 5).map(order => (
-            <div key={order.id} className="bg-neutral-900/50 border border-white/5 p-4 rounded-xl flex justify-between items-center">
-              <div>
-                <p className="font-bold text-sm">{order.userName}</p>
-                <p className="text-[10px] text-neutral-500">
-                  {order.status === 'cancelled' ? 'Cancelado' : 'Completado'}
-                </p>
-              </div>
-              <p className="font-bold text-sm">{formatCurrency(order.total)}</p>
-            </div>
-          ))}
-        </div>
-      </section>
     </div>
   );
 
@@ -570,9 +674,19 @@ export function AdminPanel() {
       </header>
 
       <main className="p-6">
-        {(activeTab === 'admin-shop' || activeTab === 'home') && renderShop()}
-        {activeTab === 'admin-promos' && renderPromos()}
+        {activeTab === 'home' && (
+          <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
+            <div className="w-24 h-24 bg-primary/20 rounded-[2.5rem] flex items-center justify-center text-primary rotate-12 mb-4">
+              <Store size={48} />
+            </div>
+            <h2 className="text-3xl font-display font-bold">¡Bienvenido, Admin!</h2>
+            <p className="text-neutral-500 max-w-xs">Usa la barra inferior para gestionar pedidos, productos y promociones.</p>
+          </div>
+        )}
+        {activeTab === 'admin-stats' && renderStats()}
         {activeTab === 'admin-orders' && renderOrders()}
+        {activeTab === 'admin-shop' && renderShop()}
+        {activeTab === 'admin-promos' && renderPromos()}
       </main>
 
       <AnimatePresence>
