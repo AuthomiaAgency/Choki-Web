@@ -9,7 +9,6 @@ export interface Product {
   points: number;
   image: string;
   ingredients?: string[];
-  stock: number;
 }
 
 export interface CartItem extends Product {
@@ -26,6 +25,7 @@ export interface Order {
   cancelledBy?: 'client' | 'admin';
   date: string;
   hasPromo?: boolean;
+  appliedPromoName?: string;
   pointsEarned: number;
   isRedemption?: boolean;
   pointsCost?: number;
@@ -78,6 +78,20 @@ export interface User {
   lastNameChange?: string;
 }
 
+export interface AdvancedConfig {
+  landingName: string;
+  landingWelcome: string;
+  landingButtonText: string;
+  showLanding: boolean;
+}
+
+export const DEFAULT_CONFIG: AdvancedConfig = {
+  landingName: 'Choki Lover',
+  landingWelcome: 'Bienvenido a la experiencia Choki',
+  landingButtonText: 'Instalar Aquí',
+  showLanding: false
+};
+
 export const PRODUCTS: Product[] = [
   {
     id: '1',
@@ -86,8 +100,7 @@ export const PRODUCTS: Product[] = [
     price: 1.50,
     points: 15,
     image: 'https://images.unsplash.com/photo-1548907040-4baa42d10919?q=80&w=1000&auto=format&fit=crop',
-    ingredients: ['Chocolate Bitter 60%', 'Manjar Blanco', 'Pecana Tostada'],
-    stock: 50
+    ingredients: ['Chocolate Bitter 60%', 'Manjar Blanco', 'Pecana Tostada']
   },
   {
     id: '2',
@@ -96,8 +109,7 @@ export const PRODUCTS: Product[] = [
     price: 1.50,
     points: 15,
     image: 'https://images.unsplash.com/photo-1606312619070-d48b4c652a52?q=80&w=1000&auto=format&fit=crop',
-    ingredients: ['Chocolate de Leche', 'Nutella', 'Avellanas Tostadas'],
-    stock: 35
+    ingredients: ['Chocolate de Leche', 'Nutella', 'Avellanas Tostadas']
   },
   {
     id: '3',
@@ -106,8 +118,7 @@ export const PRODUCTS: Product[] = [
     price: 1.50,
     points: 15,
     image: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?q=80&w=1000&auto=format&fit=crop',
-    ingredients: ['Chocolate Blanco', 'Crema de Oreo', 'Galleta Oreo'],
-    stock: 40
+    ingredients: ['Chocolate Blanco', 'Crema de Oreo', 'Galleta Oreo']
   },
   {
     id: '4',
@@ -116,8 +127,7 @@ export const PRODUCTS: Product[] = [
     price: 1.50,
     points: 15,
     image: 'https://images.unsplash.com/photo-1616486029423-aaa478965c96?q=80&w=1000&auto=format&fit=crop',
-    ingredients: ['Chocolate Bitter', 'Coco Rallado', 'Leche Condensada'],
-    stock: 25
+    ingredients: ['Chocolate Bitter', 'Coco Rallado', 'Leche Condensada']
   }
 ];
 

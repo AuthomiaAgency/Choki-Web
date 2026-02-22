@@ -1,7 +1,8 @@
 import { useApp } from '../context';
-import { User, Award, History, LogOut, Moon, Sun, Settings, PieChart as PieChartIcon } from 'lucide-react';
+import { User, Award, History, LogOut, Moon, Sun, Settings, PieChart as PieChartIcon, Share2, Download } from 'lucide-react';
 import { motion } from 'motion/react';
 import { formatCurrency } from '../utils';
+import { toast } from 'sonner';
 
 export function Profile() {
   const { user, orders, theme, toggleTheme, logout, setActiveTab, getTotalRevenue } = useApp();
@@ -13,6 +14,12 @@ export function Profile() {
   const progress = Math.min(100, (user.points % 150) / 150 * 100);
   const canRedeem = user.points >= 150;
   const revenue = getTotalRevenue();
+
+  const handleShareAPK = () => {
+    const apkUrl = window.location.origin; // Or a specific direct download link if available
+    navigator.clipboard.writeText(apkUrl);
+    toast.success('Enlace de descarga copiado al portapapeles');
+  };
 
   return (
     <div className="pb-24 px-4 sm:px-6 pt-6 sm:pt-8">
@@ -119,6 +126,22 @@ export function Profile() {
                   </p>
                 </div>
               </div>
+
+              <button 
+                onClick={() => setActiveTab('admin-stats')}
+                className="w-full py-4 bg-primary/10 border border-primary/20 rounded-2xl flex items-center justify-center gap-3 text-primary font-display font-bold hover:bg-primary/20 transition-all active:scale-95"
+              >
+                <PieChartIcon size={20} />
+                Analíticas de Ventas
+              </button>
+
+              <button 
+                onClick={handleShareAPK}
+                className="w-full py-4 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center gap-3 text-white font-display font-bold hover:bg-white/10 transition-all active:scale-95"
+              >
+                <Share2 size={20} />
+                Compartir Enlace APK
+              </button>
             </div>
           )}
         </div>

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { CartItem, Order, Product, User, PRODUCTS, Promo, ChokiPointTransaction } from './types';
+import { CartItem, Order, Product, User, PRODUCTS, Promo, ChokiPointTransaction, AdvancedConfig, DEFAULT_CONFIG } from './types';
 import { toast } from 'sonner';
 import { auth, db } from './firebase';
 import { formatCurrency } from './utils';
@@ -80,6 +80,9 @@ interface AppContextType {
   setIsAuthMode: (mode: 'login' | 'register') => void;
   highlightedProductIds: string[];
   setHighlightedProductIds: (ids: string[]) => void;
+  advancedConfig: AdvancedConfig;
+  updateAdvancedConfig: (config: Partial<AdvancedConfig>) => Promise<void>;
+  getAppliedPromo: () => Promo | null;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -97,6 +100,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [justAdded, setJustAdded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [highlightedProductIds, setHighlightedProductIds] = useState<string[]>([]);
+  const [advancedConfig, setAdvancedConfig] = useState<AdvancedConfig>(DEFAULT_CONFIG);
 
   // Theme Effect
   useEffect(() => {
@@ -153,6 +157,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setPromos(p);
     });
 
+    // Advanced Config
+    const unsubConfig = onSnapshot(doc(db, 'settings', 'advanced'), (doc) => {
+      if (doc.exists()) {
+        setAdvancedConfig(doc.data() as AdvancedConfig);
+      }
+    });
+
     // Orders
     let unsubOrders = () => {};
     
@@ -200,6 +211,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => {
       unsubProducts();
       unsubPromos();
+      unsubConfig();
       unsubOrders();
       unsubUser();
     };
@@ -335,58 +347,59 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const toggleCart = () => setIsCartOpen(prev => !prev);
 
+  const getAppliedPromo = () => {
+    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const activePromos = promos.filter(p => p.active);
+    
+    for (const promo of activePromos) {
+      const { condition } = promo;
+      let conditionMet = false;
+
+      if (condition.type === 'product_id') {
+        const targetItem = cart.find(item => item.id === condition.target);
+        if (targetItem && targetItem.quantity >= condition.threshold) conditionMet = true;
+      } else if (condition.type === 'product_list') {
+        const matchingItems = cart.filter(item => condition.targets?.includes(item.id));
+        const totalQty = matchingItems.reduce((sum, item) => sum + item.quantity, 0);
+        if (totalQty >= condition.threshold) conditionMet = true;
+      } else if (condition.type === 'min_total') {
+        if (total >= condition.threshold) conditionMet = true;
+      } else if (condition.type === 'min_quantity') {
+        const totalQty = cart.reduce((sum, item) => sum + item.quantity, 0);
+        if (totalQty >= condition.threshold) conditionMet = true;
+      }
+
+      if (conditionMet) return promo;
+    }
+    return null;
+  };
+
   const placeOrder = async (hasPromo = false) => {
     if (cart.length === 0 || !user || !db) return;
 
     let total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     let pointsEarned = Math.floor(total * 10);
     let promoApplied = hasPromo;
+    let appliedPromoName = '';
 
     // Check for sophisticated promos
-    const activePromos = promos.filter(p => p.active);
-    for (const promo of activePromos) {
-      const { condition, reward } = promo;
-      if (!condition || !reward) continue;
-      
-      let conditionMet = false;
-
-      if (condition.type === 'product_id') {
-        const targetItem = cart.find(item => item.id === condition.target);
-        if (targetItem && targetItem.quantity >= condition.threshold) {
-          conditionMet = true;
-        }
-      } else if (condition.type === 'product_list') {
-        const matchingItems = cart.filter(item => condition.targets?.includes(item.id));
-        const totalQty = matchingItems.reduce((sum, item) => sum + item.quantity, 0);
-        if (totalQty >= condition.threshold) {
-          conditionMet = true;
-        }
-      } else if (condition.type === 'min_total') {
-        if (total >= condition.threshold) {
-          conditionMet = true;
-        }
-      } else if (condition.type === 'min_quantity') {
-        const totalQty = cart.reduce((sum, item) => sum + item.quantity, 0);
-        if (totalQty >= condition.threshold) {
-          conditionMet = true;
-        }
-      }
-
-      if (conditionMet) {
-        promoApplied = true;
-        if (reward.type === 'bonus_points') {
-          pointsEarned += reward.value;
-        } else if (reward.type === 'discount_percentage') {
-          total = total * (1 - reward.value / 100);
-        } else if (reward.type === 'discount_fixed') {
-          total = Math.max(0, total - reward.value);
-        } else if (reward.type === 'promo_price') {
-          total = reward.promoPrice || total;
-        } else if (reward.type === 'multi_reward') {
-          if (reward.discountAmount) total = Math.max(0, total - reward.discountAmount);
-          if (reward.extraPoints) pointsEarned += reward.extraPoints;
-          if (reward.promoPrice) total = reward.promoPrice;
-        }
+    const promo = getAppliedPromo();
+    if (promo) {
+      promoApplied = true;
+      appliedPromoName = promo.name;
+      const { reward } = promo;
+      if (reward.type === 'bonus_points') {
+        pointsEarned += reward.value;
+      } else if (reward.type === 'discount_percentage') {
+        total = total * (1 - reward.value / 100);
+      } else if (reward.type === 'discount_fixed') {
+        total = Math.max(0, total - reward.value);
+      } else if (reward.type === 'promo_price') {
+        total = reward.promoPrice || total;
+      } else if (reward.type === 'multi_reward') {
+        if (reward.discountAmount) total = Math.max(0, total - reward.discountAmount);
+        if (reward.extraPoints) pointsEarned += reward.extraPoints;
+        if (reward.promoPrice) total = reward.promoPrice;
       }
     }
     
@@ -399,6 +412,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       status: 'pending',
       date: new Date().toISOString(),
       hasPromo: promoApplied,
+      appliedPromoName,
       pointsEarned
     };
 
@@ -723,6 +737,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return sales;
   };
 
+  const updateAdvancedConfig = async (config: Partial<AdvancedConfig>) => {
+    if (!db) return;
+    try {
+      await setDoc(doc(db, 'settings', 'advanced'), { ...advancedConfig, ...config }, { merge: true });
+      toast.success('Configuración avanzada actualizada');
+    } catch (e: any) {
+      toast.error('Error al actualizar configuración: ' + e.message);
+    }
+  };
+
   return (
     <AppContext.Provider value={{
       user,
@@ -769,7 +793,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       isAuthMode,
       setIsAuthMode,
       highlightedProductIds,
-      setHighlightedProductIds
+      setHighlightedProductIds,
+      advancedConfig,
+      updateAdvancedConfig,
+      getAppliedPromo
     }}>
       {children}
     </AppContext.Provider>

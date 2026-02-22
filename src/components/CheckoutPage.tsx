@@ -5,98 +5,15 @@ import { formatCurrency } from '../utils';
 import { motion } from 'motion/react';
 
 export function CheckoutPage() {
-  const { cart, setActiveTab, placeOrder, promos } = useApp();
-  const [hasPromo, setHasPromo] = useState(false);
+  const { cart, setActiveTab, placeOrder, promos, getAppliedPromo } = useApp();
   
-  // Check if any promo applies
-  const applicablePromo = promos.find(p => 
-    p.active && 
-    p.type === 'bundle' && 
-    cart.filter(item => item.price === 1.50).reduce((sum, item) => sum + item.quantity, 0) >= (p.requiredQuantity || 3)
-  );
-
-  // Auto-apply if applicable
-  React.useEffect(() => {
-    if (applicablePromo) {
-      setHasPromo(true);
-    } else {
-      setHasPromo(false);
-    }
-  }, [applicablePromo]);
-
+  const appliedPromo = React.useMemo(() => getAppliedPromo(), [cart, promos, getAppliedPromo]);
   const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const shipping = 0;
-  
-  // Re-calculate discount based on context logic (simplified here or reused)
-  // Ideally we should pull the discount from the context or pass it, but for now let's replicate the proportional logic if needed
-  // However, the previous code had specific hardcoded logic for a bundle. Let's remove that and rely on what was passed or calculated.
-  // Since we are moving to dynamic promos in CartDrawer, CheckoutPage should ideally reflect that.
-  // But to keep it simple and consistent with the user request:
-  // "NUNCA SE COBRE NI APAREZCA UN PRECIO AGREGADO POR ENVIO"
-  
-  // We will remove the manual promo toggle section as promos are automatic now.
-  // And remove shipping line item.
-
-  // Let's get the discount from the cart state if possible, or recalculate.
-  // Since CartDrawer calculates it, we should probably move that calculation to a shared hook or context.
-  // For now, I'll re-implement the dynamic logic here briefly or just show the total passed?
-  // Actually, the context doesn't expose the current discount.
-  // I will assume for this step that we just remove shipping and the old promo toggle.
-  
-  // Re-implementing dynamic promo logic here to get accurate discount for display
-  let discount = 0;
-  const activePromos = promos.filter(p => p.active);
-  for (const promo of activePromos) {
-      let currentDiscount = 0;
-      const { condition, reward } = promo;
-      if (!condition || !reward) continue;
-
-      let conditionMet = false;
-      let applicableTotal = 0;
-      let multiplier = 0;
-
-      if (condition.type === 'product_id') {
-        const targetItem = cart.find(item => item.id === condition.target);
-        if (targetItem) {
-          const applicableQuantity = targetItem.quantity;
-          applicableTotal = targetItem.price * targetItem.quantity;
-          if (applicableQuantity >= condition.threshold) {
-            conditionMet = true;
-            multiplier = Math.floor(applicableQuantity / condition.threshold);
-          }
-        }
-      } else if (condition.type === 'min_total') {
-        if (totalPrice >= condition.threshold) {
-          conditionMet = true;
-          applicableTotal = totalPrice;
-          multiplier = Math.floor(totalPrice / condition.threshold);
-        }
-      } else if (condition.type === 'min_quantity') {
-        const totalQty = cart.reduce((sum, item) => sum + item.quantity, 0);
-        if (totalQty >= condition.threshold) {
-          conditionMet = true;
-          applicableTotal = totalPrice;
-          multiplier = Math.floor(totalQty / condition.threshold);
-        }
-      }
-
-      if (conditionMet) {
-        if (reward.type === 'discount_percentage') {
-          currentDiscount = applicableTotal * (reward.value / 100);
-        } else if (reward.type === 'discount_fixed') {
-          currentDiscount = reward.value * multiplier;
-        }
-      }
-
-      if (currentDiscount > discount) {
-        discount = currentDiscount;
-      }
-  }
-
+  const discount = appliedPromo ? appliedPromo.discount : 0;
   const total = totalPrice - discount;
 
   const handleConfirm = () => {
-    placeOrder(discount > 0);
+    placeOrder(!!appliedPromo);
     setActiveTab('orders');
   };
 

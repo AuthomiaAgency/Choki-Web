@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context';
 import { formatCurrency } from '../utils';
-import { CheckCircle, XCircle, Clock, DollarSign, Package, Plus, Edit2, Trash2, Tag, Store, History, Save, X, Image as ImageIcon, List, Upload, PieChart as PieChartIcon } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, DollarSign, Package, Plus, Edit2, Trash2, Tag, Store, History, Save, X, Image as ImageIcon, List, Upload, PieChart as PieChartIcon, Settings } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Product, Promo, Order } from '../types';
 import { toast } from 'sonner';
@@ -11,7 +11,7 @@ export function AdminPanel() {
   const { 
     products, orders, promos, updateOrderStatus, activeTab, setActiveTab,
     addProduct, updateProduct, deleteProduct, addPromo, updatePromo, deletePromo,
-    getSectorizedSales, deleteOrder
+    getSectorizedSales, deleteOrder, advancedConfig, updateAdvancedConfig
   } = useApp();
   
   const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
@@ -89,8 +89,7 @@ export function AdminPanel() {
       price: 0,
       points: 0,
       image: '',
-      ingredients: [],
-      stock: 0
+      ingredients: []
     });
     setIsProductModalOpen(true);
   };
@@ -211,17 +210,6 @@ export function AdminPanel() {
                 </div>
               )}
             </div>
-          </div>
-
-          <div>
-            <label className="text-xs font-bold uppercase text-neutral-500 mb-1 block">Stock</label>
-            <input 
-              type="number" 
-              value={editingProduct?.stock} 
-              onChange={e => setEditingProduct(prev => ({ ...prev!, stock: parseInt(e.target.value) }))}
-              className="w-full bg-neutral-800 rounded-xl p-3 border border-white/5 focus:border-primary outline-none"
-              required
-            />
           </div>
 
           <button type="submit" className="w-full py-4 bg-primary text-neutral-950 font-display font-bold rounded-xl shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all">
@@ -404,7 +392,7 @@ export function AdminPanel() {
             {editingPromo?.reward?.type === 'multi_reward' && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1 block">Descuento (S/)</label>
+                  <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1 block">Descuento Fijo (S/)</label>
                   <input 
                     type="number" 
                     value={editingPromo?.reward?.discountAmount || ''} 
@@ -752,12 +740,84 @@ export function AdminPanel() {
 
       <main className="p-6">
         {activeTab === 'home' && (
-          <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
-            <div className="w-24 h-24 bg-primary/20 rounded-[2.5rem] flex items-center justify-center text-primary rotate-12 mb-4">
-              <Store size={48} />
+          <div className="space-y-6">
+            <div className="flex flex-col items-center justify-center py-12 text-center space-y-4 bg-neutral-900 rounded-[2.5rem] border border-white/5">
+              <div className="w-20 h-20 bg-primary/20 rounded-[2rem] flex items-center justify-center text-primary rotate-12 mb-2">
+                <Store size={40} />
+              </div>
+              <h2 className="text-2xl font-display font-bold">¡Bienvenido, Admin!</h2>
+              <p className="text-neutral-500 max-w-xs text-sm">Gestiona tu imperio Choki desde aquí.</p>
             </div>
-            <h2 className="text-3xl font-display font-bold">¡Bienvenido, Admin!</h2>
-            <p className="text-neutral-500 max-w-xs">Usa la barra inferior para gestionar pedidos, productos y promociones.</p>
+
+            {/* Advanced Configuration Section */}
+            <div className="bg-neutral-900 rounded-[2.5rem] p-8 border border-white/5">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="w-12 h-12 bg-indigo-500/10 text-indigo-500 rounded-2xl flex items-center justify-center">
+                  <Settings size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-display font-bold">Configuración Avanzada</h3>
+                  <p className="text-xs text-neutral-500">Personaliza la experiencia de tus clientes</p>
+                </div>
+              </div>
+
+              <div className="space-y-8">
+                <div className="flex items-center justify-between p-6 bg-white/5 rounded-3xl border border-white/5">
+                  <div>
+                    <p className="font-display font-bold text-lg">Página de Bienvenida (Landing)</p>
+                    <p className="text-xs text-neutral-500">Activa una experiencia inmersiva para nuevos usuarios</p>
+                  </div>
+                  <button 
+                    onClick={() => updateAdvancedConfig({ showLanding: !advancedConfig.showLanding })}
+                    className={`w-14 h-7 rounded-full p-1 transition-colors ${advancedConfig.showLanding ? 'bg-indigo-500' : 'bg-neutral-700'}`}
+                  >
+                    <motion.div 
+                      className="w-5 h-5 bg-white rounded-full shadow-lg"
+                      animate={{ x: advancedConfig.showLanding ? 28 : 0 }}
+                    />
+                  </button>
+                </div>
+
+                {advancedConfig.showLanding && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-white/5 rounded-3xl border border-white/5"
+                  >
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold uppercase text-neutral-500 ml-2">Nombre Personalizado</label>
+                      <input 
+                        type="text"
+                        value={advancedConfig.landingName}
+                        onChange={e => updateAdvancedConfig({ landingName: e.target.value })}
+                        className="w-full bg-neutral-800 rounded-2xl p-4 border border-white/5 text-sm focus:border-indigo-500 outline-none transition-colors"
+                        placeholder="Ej: Choki Lover"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold uppercase text-neutral-500 ml-2">Mensaje de Bienvenida</label>
+                      <input 
+                        type="text"
+                        value={advancedConfig.landingWelcome}
+                        onChange={e => updateAdvancedConfig({ landingWelcome: e.target.value })}
+                        className="w-full bg-neutral-800 rounded-2xl p-4 border border-white/5 text-sm focus:border-indigo-500 outline-none transition-colors"
+                        placeholder="Ej: Bienvenido a la experiencia Choki"
+                      />
+                    </div>
+                    <div className="md:col-span-2 space-y-2">
+                      <label className="text-[10px] font-bold uppercase text-neutral-500 ml-2">Texto del Botón</label>
+                      <input 
+                        type="text"
+                        value={advancedConfig.landingButtonText}
+                        onChange={e => updateAdvancedConfig({ landingButtonText: e.target.value })}
+                        className="w-full bg-neutral-800 rounded-2xl p-4 border border-white/5 text-sm focus:border-indigo-500 outline-none transition-colors"
+                        placeholder="Ej: Instalar Aquí"
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+            </div>
           </div>
         )}
         {activeTab === 'admin-stats' && renderStats()}

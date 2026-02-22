@@ -4,6 +4,7 @@ import { ProductModal } from './components/ProductModal';
 import { CartDrawer } from './components/CartDrawer';
 import { Navbar } from './components/Navbar';
 import { AdminPanel } from './components/AdminPanel';
+import { LandingPage } from './components/LandingPage';
 import { Profile } from './components/Profile';
 import { Auth } from './components/Auth';
 import { FloatingCartBar } from './components/FloatingCartBar';
@@ -20,10 +21,21 @@ import { Toaster } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 
 function AppContent() {
-  const { user, products, activeTab, toggleCart, cart, setActiveTab, justAdded } = useApp();
+  const { user, products, activeTab, toggleCart, cart, setActiveTab, justAdded, advancedConfig } = useApp();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [showLanding, setShowLanding] = useState(false);
+
+  useState(() => {
+    if (advancedConfig?.showLanding) {
+      const hasSeenLanding = sessionStorage.getItem('hasSeenLanding');
+      if (!hasSeenLanding) {
+        setShowLanding(true);
+        sessionStorage.setItem('hasSeenLanding', 'true');
+      }
+    }
+  });
 
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -74,6 +86,9 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 font-sans pb-32 transition-colors duration-300">
+      <AnimatePresence>
+        {showLanding && <LandingPage />}
+      </AnimatePresence>
       {/* Top Bar */}
       <header className="sticky top-0 z-30 bg-neutral-50/80 dark:bg-neutral-950/80 backdrop-blur-md px-4 sm:px-6 py-4 flex items-center justify-between border-b border-neutral-200 dark:border-white/5 transition-colors duration-300">
         <div className="flex items-center gap-2 sm:gap-3">

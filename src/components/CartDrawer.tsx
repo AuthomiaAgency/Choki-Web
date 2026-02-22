@@ -6,73 +6,11 @@ import confetti from 'canvas-confetti';
 import { useState, useMemo } from 'react';
 
 export function CartDrawer() {
-  const { isCartOpen, toggleCart, cart, updateCartQuantity, placeOrder, promos, setActiveTab } = useApp();
+  const { isCartOpen, toggleCart, cart, updateCartQuantity, placeOrder, promos, setActiveTab, getAppliedPromo } = useApp();
 
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   
-  // Dynamic Promo Logic
-  const appliedPromo = useMemo(() => {
-    let bestDiscount = 0;
-    let bestPromoObj = null;
-
-    const activePromos = promos.filter(p => p.active);
-
-    for (const promo of activePromos) {
-      let currentDiscount = 0;
-      const { condition, reward } = promo;
-
-      // Skip invalid promos
-      if (!condition || !reward) continue;
-
-      // Check Condition
-      let conditionMet = false;
-      let applicableTotal = 0;
-      let multiplier = 0;
-
-      if (condition.type === 'product_id') {
-        const targetItem = cart.find(item => item.id === condition.target);
-        if (targetItem) {
-          const applicableQuantity = targetItem.quantity;
-          applicableTotal = targetItem.price * targetItem.quantity;
-          if (applicableQuantity >= condition.threshold) {
-            conditionMet = true;
-            multiplier = Math.floor(applicableQuantity / condition.threshold);
-          }
-        }
-      } else if (condition.type === 'min_total') {
-        if (subtotal >= condition.threshold) {
-          conditionMet = true;
-          applicableTotal = subtotal;
-          multiplier = Math.floor(subtotal / condition.threshold);
-        }
-      } else if (condition.type === 'min_quantity') {
-        const totalQty = cart.reduce((sum, item) => sum + item.quantity, 0);
-        if (totalQty >= condition.threshold) {
-          conditionMet = true;
-          applicableTotal = subtotal;
-          multiplier = Math.floor(totalQty / condition.threshold);
-        }
-      }
-
-      if (conditionMet) {
-        // Calculate Reward
-        if (reward.type === 'discount_percentage') {
-          // Apply to applicable total (specific product or subtotal)
-          currentDiscount = applicableTotal * (reward.value / 100);
-        } else if (reward.type === 'discount_fixed') {
-          currentDiscount = reward.value * multiplier;
-        }
-        // Bonus points are handled in placeOrder, not as a discount
-      }
-
-      if (currentDiscount > bestDiscount) {
-        bestDiscount = currentDiscount;
-        bestPromoObj = promo;
-      }
-    }
-
-    return bestPromoObj ? { name: bestPromoObj.name, discount: bestDiscount, id: bestPromoObj.id } : null;
-  }, [cart, promos, subtotal]);
+  const appliedPromo = useMemo(() => getAppliedPromo(), [cart, promos, getAppliedPromo]);
 
   const discount = appliedPromo ? appliedPromo.discount : 0;
   const total = Math.max(0, subtotal - discount);
@@ -192,11 +130,14 @@ export function CartDrawer() {
                         </div>
                         <div>
                           <p className="text-primary font-display font-bold text-sm">{appliedPromo.name}</p>
-                          <p className="text-[10px] text-primary/60">¡Descuento aplicado automáticamente!</p>
+                          <p className="text-[10px] text-primary/60">¡Promo aplicada!</p>
+                          {appliedPromo.extraPoints > 0 && (
+                            <p className="text-[10px] text-emerald-500 font-bold">+{appliedPromo.extraPoints} Puntos Extra</p>
+                          )}
                         </div>
                       </div>
                       <div className="text-primary font-bold">
-                        -{formatCurrency(appliedPromo.discount)}
+                        {appliedPromo.discount > 0 ? `-${formatCurrency(appliedPromo.discount)}` : '¡Puntos!'}
                       </div>
                     </motion.div>
                   )}
