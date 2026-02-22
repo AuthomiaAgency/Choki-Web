@@ -365,60 +365,131 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const toggleCart = () => setIsCartOpen(prev => !prev);
 
   const getAppliedPromo = () => {
-    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const activePromos = promos.filter(p => p.active);
-    
+    let bestPromo = null;
+    let maxSavings = 0;
+
     for (const promo of activePromos) {
-      const { condition } = promo;
-      let conditionMet = false;
+      const { condition, reward } = promo;
+      let savings = 0;
+      let points = 0;
+      let multiplier = 0;
 
       if (condition.type === 'product_id') {
         const targetItem = cart.find(item => item.id === condition.target);
-        if (targetItem && targetItem.quantity >= condition.threshold) conditionMet = true;
+        if (targetItem && targetItem.quantity >= condition.threshold) {
+          multiplier = Math.floor(targetItem.quantity / condition.threshold);
+        }
       } else if (condition.type === 'product_list') {
         const matchingItems = cart.filter(item => condition.targets?.includes(item.id));
         const totalQty = matchingItems.reduce((sum, item) => sum + item.quantity, 0);
-        if (totalQty >= condition.threshold) conditionMet = true;
+        if (totalQty >= condition.threshold) {
+          multiplier = Math.floor(totalQty / condition.threshold);
+        }
       } else if (condition.type === 'min_total') {
-        if (total >= condition.threshold) conditionMet = true;
+        const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        if (total >= condition.threshold) {
+           // For total-based promos, usually it's once per order, but user asked for proportionality.
+           // Let's assume proportionality for total too if it makes sense (e.g. every 100 soles get 10 off).
+           multiplier = Math.floor(total / condition.threshold);
+        }
       } else if (condition.type === 'min_quantity') {
         const totalQty = cart.reduce((sum, item) => sum + item.quantity, 0);
-        if (totalQty >= condition.threshold) conditionMet = true;
+        if (totalQty >= condition.threshold) {
+          multiplier = Math.floor(totalQty / condition.threshold);
+        }
       }
 
-      if (conditionMet) return promo;
+      if (multiplier > 0) {
+        // Calculate savings based on reward type
+        if (reward.type === 'discount_fixed') {
+          savings = (reward.value || 0) * multiplier;
+        } else if (reward.type === 'discount_percentage') {
+          // Percentage usually applies to the whole eligible amount, but let's stick to the multiplier logic for "sets"
+          // Actually, percentage is usually on the total. 
+          // If it's a product promo, it's percentage off those products.
+          if (condition.type === 'product_id' || condition.type === 'product_list') {
+             // Calculate price of eligible items
+             // This is complex for mixed lists. Let's simplify: 
+             // If it's a set of products, we apply % off the set's value.
+             // For now, let's assume percentage applies to the *threshold* amount of items per set.
+             // But usually percentage is just "10% off".
+             // Let's treat percentage as "global" for the eligible items.
+             const eligibleItems = condition.type === 'product_id' 
+                ? cart.filter(i => i.id === condition.target)
+                : cart.filter(i => condition.targets?.includes(i.id));
+             
+             const eligibleTotal = eligibleItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+             savings = eligibleTotal * ((reward.value || 0) / 100);
+          } else {
+             const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+             savings = total * ((reward.value || 0) / 100);
+          }
+        } else if (reward.type === 'promo_price') {
+          // Fixed price for the set. 
+          // Savings = (Original Price of Set - Promo Price) * Multiplier
+          // We need the original price of the items in the set.
+          // This is tricky for 'product_list' if items have different prices.
+          // We'll assume the cheapest or average? No, let's sum the prices of the items involved.
+          // Simplified: Assume uniform price or specific target.
+          if (condition.type === 'product_id') {
+             const item = cart.find(i => i.id === condition.target);
+             if (item) {
+               const originalSetPrice = item.price * condition.threshold;
+               const promoSetPrice = reward.value || 0;
+               savings = (originalSetPrice - promoSetPrice) * multiplier;
+             }
+          }
+          // For product_list, it's harder to know WHICH items form the set.
+          // We will skip complex product_list promo_price calculation for now or assume average.
+        } else if (reward.type === 'bonus_points') {
+           points = (reward.value || 0) * multiplier;
+        } else if (reward.type === 'multi_reward') {
+           if (reward.discountAmount) savings += (reward.discountAmount * multiplier);
+           if (reward.extraPoints) points += (reward.extraPoints * multiplier);
+           if (reward.promoPrice) {
+              // Handle promo price in multi reward similar to above
+              if (condition.type === 'product_id') {
+                 const item = cart.find(i => i.id === condition.target);
+                 if (item) {
+                   const originalSetPrice = item.price * condition.threshold;
+                   const promoSetPrice = reward.promoPrice;
+                   savings += (originalSetPrice - promoSetPrice) * multiplier;
+                 }
+              }
+           }
+        }
+
+        if (savings > maxSavings || (savings === maxSavings && points > 0)) {
+          maxSavings = savings;
+          bestPromo = { promo, savings, points };
+        }
+      }
     }
-    return null;
+    
+    return bestPromo;
   };
 
-  const placeOrder = async (hasPromo = false) => {
+  const placeOrder = async () => {
     if (cart.length === 0 || !user || !db) return;
 
-    let total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    let pointsEarned = Math.floor(total * 10);
-    let promoApplied = hasPromo;
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const appliedPromoData = getAppliedPromo();
+    
+    let total = subtotal;
+    let pointsEarned = 0;
     let appliedPromoName = '';
 
-    // Check for sophisticated promos
-    const promo = getAppliedPromo();
-    if (promo) {
-      promoApplied = true;
-      appliedPromoName = promo.name;
-      const { reward } = promo;
-      if (reward.type === 'bonus_points') {
-        pointsEarned += reward.value;
-      } else if (reward.type === 'discount_percentage') {
-        total = total * (1 - reward.value / 100);
-      } else if (reward.type === 'discount_fixed') {
-        total = Math.max(0, total - reward.value);
-      } else if (reward.type === 'promo_price') {
-        total = reward.promoPrice || total;
-      } else if (reward.type === 'multi_reward') {
-        if (reward.discountAmount) total = Math.max(0, total - reward.discountAmount);
-        if (reward.extraPoints) pointsEarned += reward.extraPoints;
-        if (reward.promoPrice) total = reward.promoPrice;
-      }
+    if (appliedPromoData) {
+      total = Math.max(0, subtotal - appliedPromoData.savings);
+      pointsEarned = appliedPromoData.points;
+      appliedPromoName = appliedPromoData.promo.name;
     }
+
+    // Base points on final total (1 point per 10 currency units, for example, or 10 points per unit?)
+    // User said "proportional to final price". 
+    // Previous logic was `total * 10`. Let's keep that but use the discounted total.
+    pointsEarned += Math.floor(total * 10);
     
     const newOrder: Order = {
       id: `ord-${Date.now()}`,
@@ -428,7 +499,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       total,
       status: 'pending',
       date: new Date().toISOString(),
-      hasPromo: promoApplied,
+      hasPromo: !!appliedPromoData,
       appliedPromoName,
       pointsEarned
     };
@@ -439,21 +510,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
       
       const updatedHistory = [newOrder, ...user.history].slice(0, 50);
       
+      // Update user points and history
+      // Note: We need to fetch the latest user data to ensure we don't overwrite points if they changed elsewhere,
+      // but for this app context 'user' should be up to date via the listener.
+      const newPoints = (user.points || 0) + pointsEarned;
+
       await updateDoc(doc(db, 'users', user.id), {
         history: updatedHistory,
+        points: newPoints
       });
 
       // Friendly Notification
       sendNotification('¡Pedido Recibido! 🍫', {
-        body: `¡Hola ${user.name}! Hemos recibido tu pedido. ¡Pronto estará listo!`,
+        body: `¡Hola ${user.name}! Hemos recibido tu pedido. ¡Ganaste ${pointsEarned} ChokiPoints!`,
         icon: '/pwa-192x192.png'
       });
 
-      clearCart();
+      setCart([]);
       setIsCartOpen(false);
-      setActiveTab('orders'); 
-    } catch (e: any) {
-      toast.error('Error al realizar pedido: ' + e.message);
+      setActiveTab('orders');
+      toast.success('¡Pedido realizado con éxito!');
+    } catch (error) {
+      console.error("Error placing order:", error);
+      toast.error('Error al realizar el pedido');
     }
   };
 

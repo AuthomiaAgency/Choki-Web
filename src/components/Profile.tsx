@@ -180,8 +180,8 @@ export function Profile() {
         >
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-lg font-display font-bold text-white">Páginas Personalizadas</h2>
-              <p className="text-xs text-neutral-400">Crea experiencias únicas para tus clientes</p>
+              <h2 className="text-lg font-display font-bold text-white">Enlaces de Descarga Directa</h2>
+              <p className="text-xs text-neutral-400">Crea enlaces personalizados para compartir la App</p>
             </div>
             <button 
               onClick={() => setIsCreatingLanding(true)}
@@ -200,9 +200,13 @@ export function Profile() {
                 </div>
                 <div className="flex items-center gap-2">
                   <button 
-                    onClick={() => handleShareLanding(landing.slug)}
+                    onClick={() => {
+                      const url = `${window.location.origin}?landing=${landing.slug}&install=true`;
+                      navigator.clipboard.writeText(url);
+                      toast.success('Enlace de descarga directa copiado');
+                    }}
                     className="p-2 text-neutral-400 hover:text-primary hover:bg-white/5 rounded-lg transition-colors"
-                    title="Copiar Enlace"
+                    title="Copiar Enlace de Descarga"
                   >
                     <Copy size={16} />
                   </button>
@@ -219,7 +223,7 @@ export function Profile() {
             
             {(!advancedConfig?.landings || advancedConfig.landings.length === 0) && (
               <div className="text-center py-8 text-neutral-500 text-sm italic border border-dashed border-white/10 rounded-2xl">
-                No hay páginas creadas aún
+                No hay enlaces creados aún
               </div>
             )}
           </div>
@@ -234,7 +238,7 @@ export function Profile() {
               >
                 <div className="mt-6 pt-6 border-t border-white/10 space-y-4">
                   <div className="flex justify-between items-center mb-2">
-                    <h3 className="text-sm font-bold text-white">Nueva Página</h3>
+                    <h3 className="text-sm font-bold text-white">Nuevo Enlace Personalizado</h3>
                     <button onClick={() => setIsCreatingLanding(false)} className="text-neutral-500 hover:text-white">
                       <X size={16} />
                     </button>
@@ -243,28 +247,28 @@ export function Profile() {
                   <div className="grid grid-cols-1 gap-3">
                     <input 
                       type="text" 
-                      placeholder="Nombre (ej: Cliente VIP)" 
+                      placeholder="Nombre del Grupo/Persona (ej: Familia)" 
                       value={newLanding.name}
                       onChange={e => setNewLanding({...newLanding, name: e.target.value})}
                       className="bg-neutral-950 border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:border-primary/50"
                     />
                     <input 
                       type="text" 
-                      placeholder="Slug URL (ej: vip-promo)" 
+                      placeholder="Identificador URL (ej: familia-promo)" 
                       value={newLanding.slug}
                       onChange={e => setNewLanding({...newLanding, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})}
                       className="bg-neutral-950 border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:border-primary/50"
                     />
                     <input 
                       type="text" 
-                      placeholder="Mensaje de Bienvenida" 
+                      placeholder="Mensaje de Bienvenida (Opcional)" 
                       value={newLanding.welcomeMessage}
                       onChange={e => setNewLanding({...newLanding, welcomeMessage: e.target.value})}
                       className="bg-neutral-950 border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:border-primary/50"
                     />
                     <input 
                       type="text" 
-                      placeholder="Texto del Botón (ej: Descargar)" 
+                      placeholder="Texto del Botón (ej: Instalar App)" 
                       value={newLanding.buttonText}
                       onChange={e => setNewLanding({...newLanding, buttonText: e.target.value})}
                       className="bg-neutral-950 border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:border-primary/50"
@@ -275,7 +279,7 @@ export function Profile() {
                     onClick={handleCreateLanding}
                     className="w-full py-3 bg-primary text-neutral-950 font-bold rounded-xl hover:bg-primary/90 transition-colors"
                   >
-                    Crear Página
+                    Crear Enlace de Descarga
                   </button>
                 </div>
               </motion.div>

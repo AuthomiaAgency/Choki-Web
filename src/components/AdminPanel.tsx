@@ -339,10 +339,10 @@ export function AdminPanel() {
             </div>
           </div>
 
-          <div className="p-4 bg-neutral-800/50 rounded-xl border border-white/5 space-y-4">
+            <div className="p-4 bg-neutral-800/50 rounded-xl border border-white/5 space-y-4">
             <h4 className="text-sm font-bold text-emerald-500">Recompensa</h4>
             <div className="grid grid-cols-2 gap-3">
-              <div>
+              <div className="col-span-2 sm:col-span-1">
                 <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1 block">Tipo</label>
                 <select 
                   value={editingPromo?.reward?.type}
@@ -359,18 +359,51 @@ export function AdminPanel() {
                   <option value="multi_reward">Recompensa Múltiple</option>
                 </select>
               </div>
-              <div>
-                <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1 block">Valor Principal</label>
-                <input 
-                  type="number" 
-                  value={editingPromo?.reward?.value || ''} 
-                  onChange={e => setEditingPromo(prev => ({ 
-                    ...prev!, 
-                    reward: { ...prev!.reward!, value: parseFloat(e.target.value) || 0 } 
-                  }))}
-                  className="w-full bg-neutral-800 rounded-xl p-2 border border-white/5 text-sm"
-                />
-              </div>
+              
+              {editingPromo?.reward?.type === 'discount_percentage' && (
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1 block">Porcentaje (%)</label>
+                  <input 
+                    type="number" 
+                    value={editingPromo?.reward?.value || ''} 
+                    onChange={e => setEditingPromo(prev => ({ 
+                      ...prev!, 
+                      reward: { ...prev!.reward!, value: parseFloat(e.target.value) || 0 } 
+                    }))}
+                    className="w-full bg-neutral-800 rounded-xl p-2 border border-white/5 text-sm"
+                  />
+                </div>
+              )}
+
+              {editingPromo?.reward?.type === 'discount_fixed' && (
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1 block">Monto (S/)</label>
+                  <input 
+                    type="number" 
+                    value={editingPromo?.reward?.value || ''} 
+                    onChange={e => setEditingPromo(prev => ({ 
+                      ...prev!, 
+                      reward: { ...prev!.reward!, value: parseFloat(e.target.value) || 0 } 
+                    }))}
+                    className="w-full bg-neutral-800 rounded-xl p-2 border border-white/5 text-sm"
+                  />
+                </div>
+              )}
+
+              {editingPromo?.reward?.type === 'bonus_points' && (
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1 block">Puntos</label>
+                  <input 
+                    type="number" 
+                    value={editingPromo?.reward?.value || ''} 
+                    onChange={e => setEditingPromo(prev => ({ 
+                      ...prev!, 
+                      reward: { ...prev!.reward!, value: parseFloat(e.target.value) || 0 } 
+                    }))}
+                    className="w-full bg-neutral-800 rounded-xl p-2 border border-white/5 text-sm"
+                  />
+                </div>
+              )}
             </div>
 
             {editingPromo?.reward?.type === 'promo_price' && (
@@ -382,7 +415,7 @@ export function AdminPanel() {
                   value={editingPromo?.reward?.promoPrice || ''} 
                   onChange={e => setEditingPromo(prev => ({ 
                     ...prev!, 
-                    reward: { ...prev!.reward!, promoPrice: parseFloat(e.target.value) || 0 } 
+                    reward: { ...prev!.reward!, promoPrice: parseFloat(e.target.value) || 0, value: 0 } 
                   }))}
                   className="w-full bg-neutral-800 rounded-xl p-2 border border-white/5 text-sm"
                 />
@@ -415,6 +448,22 @@ export function AdminPanel() {
                     className="w-full bg-neutral-800 rounded-xl p-2 border border-white/5 text-sm"
                   />
                 </div>
+                {editingPromo?.condition?.type === 'product_id' && (
+                   <div className="col-span-2">
+                      <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1 block">Precio Promo (Opcional)</label>
+                      <input 
+                        type="number" 
+                        step="0.1"
+                        value={editingPromo?.reward?.promoPrice || ''} 
+                        onChange={e => setEditingPromo(prev => ({ 
+                          ...prev!, 
+                          reward: { ...prev!.reward!, promoPrice: parseFloat(e.target.value) || 0 } 
+                        }))}
+                        className="w-full bg-neutral-800 rounded-xl p-2 border border-white/5 text-sm"
+                        placeholder="Si se establece, anula el descuento fijo"
+                      />
+                   </div>
+                )}
               </div>
             )}
           </div>

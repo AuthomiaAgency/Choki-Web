@@ -10,9 +10,11 @@ export function CartDrawer() {
 
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   
-  const appliedPromo = useMemo(() => getAppliedPromo(), [cart, promos, getAppliedPromo]);
+  const appliedPromoData = useMemo(() => getAppliedPromo(), [cart, promos, getAppliedPromo]);
 
-  const discount = appliedPromo ? appliedPromo.discount : 0;
+  const discount = appliedPromoData ? appliedPromoData.savings : 0;
+  const extraPoints = appliedPromoData ? appliedPromoData.points : 0;
+  const promoName = appliedPromoData ? appliedPromoData.promo.name : '';
   const total = Math.max(0, subtotal - discount);
 
   const [isProcessing, setIsProcessing] = useState(false);
@@ -22,7 +24,7 @@ export function CartDrawer() {
     await new Promise(resolve => setTimeout(resolve, 1500));
     
     // Pass promo info if needed, or just the fact that a promo was applied
-    await placeOrder(!!appliedPromo); 
+    await placeOrder(); 
     
     confetti({
       particleCount: 100,
@@ -118,7 +120,7 @@ export function CartDrawer() {
                   ))}
 
                   {/* Applied Promo Indicator */}
-                  {appliedPromo && (
+                  {appliedPromoData && (
                     <motion.div 
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -129,15 +131,15 @@ export function CartDrawer() {
                           <Tag size={20} />
                         </div>
                         <div>
-                          <p className="text-primary font-display font-bold text-sm">{appliedPromo.name}</p>
+                          <p className="text-primary font-display font-bold text-sm">{promoName}</p>
                           <p className="text-[10px] text-primary/60">¡Promo aplicada!</p>
-                          {appliedPromo.extraPoints > 0 && (
-                            <p className="text-[10px] text-emerald-500 font-bold">+{appliedPromo.extraPoints} Puntos Extra</p>
+                          {extraPoints > 0 && (
+                            <p className="text-[10px] text-emerald-500 font-bold">+{extraPoints} Puntos Extra</p>
                           )}
                         </div>
                       </div>
                       <div className="text-primary font-bold">
-                        {appliedPromo.discount > 0 ? `-${formatCurrency(appliedPromo.discount)}` : '¡Puntos!'}
+                        {discount > 0 ? `-${formatCurrency(discount)}` : '¡Puntos!'}
                       </div>
                     </motion.div>
                   )}

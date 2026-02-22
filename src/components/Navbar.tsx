@@ -12,9 +12,9 @@ export function Navbar() {
   ];
 
   const adminTabs = [
+    { id: 'admin-orders', icon: Package, label: 'Pedidos' },
     { id: 'admin-shop', icon: Store, label: 'Tienda' },
     { id: 'admin-promos', icon: Tag, label: 'Promos' },
-    { id: 'admin-orders', icon: Package, label: 'Pedidos' },
     { id: 'profile', icon: User, label: 'Perfil' },
   ];
 

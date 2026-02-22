@@ -47,6 +47,8 @@ function AppContent() {
         buttonText: 'Instalar Ahora'
       });
       setShowLanding(true);
+      // We can't auto-trigger install due to browser security, but the LandingPage 
+      // will be shown with the "Install Now" button prominent.
       return;
     }
 

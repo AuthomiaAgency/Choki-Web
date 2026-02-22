@@ -7,13 +7,13 @@ import { motion } from 'motion/react';
 export function CheckoutPage() {
   const { cart, setActiveTab, placeOrder, promos, getAppliedPromo } = useApp();
   
-  const appliedPromo = React.useMemo(() => getAppliedPromo(), [cart, promos, getAppliedPromo]);
+  const appliedPromoData = React.useMemo(() => getAppliedPromo(), [cart, promos, getAppliedPromo]);
   const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const discount = appliedPromo ? appliedPromo.discount : 0;
-  const total = totalPrice - discount;
+  const discount = appliedPromoData ? appliedPromoData.savings : 0;
+  const total = Math.max(0, totalPrice - discount);
 
   const handleConfirm = () => {
-    placeOrder(!!appliedPromo);
+    placeOrder();
     setActiveTab('orders');
   };
 
@@ -52,7 +52,7 @@ export function CheckoutPage() {
               </div>
               {discount > 0 && (
                 <div className="flex justify-between text-sm text-emerald-500 font-bold">
-                  <span>Descuento ChokiPromo</span>
+                  <span>Descuento {appliedPromoData?.promo.name}</span>
                   <span>-{formatCurrency(discount)}</span>
                 </div>
               )}
