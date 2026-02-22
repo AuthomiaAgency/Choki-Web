@@ -4,12 +4,12 @@ import { getFirestore, Firestore } from 'firebase/firestore';
 
 // Configuration provided by user
 const firebaseConfig = {
-  apiKey: "AIzaSyB1TkJoTM02SBsDSvB0zFLDgculptobX9k",
-  authDomain: "choki-app.firebaseapp.com",
-  projectId: "choki-app",
-  storageBucket: "choki-app.firebasestorage.app",
-  messagingSenderId: "1046631547148",
-  appId: "1:1046631547148:web:d0deb3506f29c253604929",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyB1TkJoTM02SBsDSvB0zFLDgculptobX9k",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "choki-app.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "choki-app",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "choki-app.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "1046631547148",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:1046631547148:web:d0deb3506f29c253604929",
   measurementId: "G-8MNWVHYKX1"
 };
 
