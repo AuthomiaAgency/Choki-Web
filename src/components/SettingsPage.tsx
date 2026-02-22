@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context';
-import { ArrowLeft, Camera, User, Mail, Lock, Eye, EyeOff, CheckCircle2, Moon, Sun } from 'lucide-react';
+import { ArrowLeft, Camera, User, Mail, Lock, Eye, EyeOff, CheckCircle2, Moon, Sun, Download, Smartphone } from 'lucide-react';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
 
@@ -14,6 +14,30 @@ export function SettingsPage() {
   const [confirmPass, setConfirmPass] = useState('');
   const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) {
+      toast.info('Para instalar la App:', {
+        description: 'En iPhone: Toca "Compartir" y luego "Agregar a Inicio".\nEn Android: Toca el menú y "Instalar aplicación".'
+      });
+      return;
+    }
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -231,6 +255,31 @@ export function SettingsPage() {
               Actualizar Contraseña
             </button>
           </div>
+        </section>
+
+        {/* App Installation */}
+        <section className="space-y-4">
+          <h2 className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.2em]">Aplicación</h2>
+          <button 
+            onClick={handleInstallClick}
+            className="w-full flex items-center justify-between p-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-white/5 rounded-2xl active:scale-[0.98] transition-all"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary">
+                <Smartphone size={20} />
+              </div>
+              <div className="text-left">
+                <h3 className="font-display font-bold text-neutral-900 dark:text-white">Instalar App</h3>
+                <p className="text-xs text-neutral-500">Descarga la versión móvil</p>
+              </div>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-500">
+              <Download size={20} />
+            </div>
+          </button>
+          <p className="text-[10px] text-neutral-400 italic text-center">
+            Nota: Para generar un APK nativo, se requiere usar herramientas externas como Capacitor o Android Studio. Esta opción instala la Web App Progresiva (PWA).
+          </p>
         </section>
       </main>
     </div>
