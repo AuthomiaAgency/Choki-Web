@@ -21,8 +21,7 @@ export function AdminPanel() {
   const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
 
   const activeOrders = orders.filter(o => 
-    (o.status === 'pending' || o.status === 'prepared') || 
-    (o.status === 'cancelled' && o.cancelledBy === 'admin')
+    o.status === 'pending' || o.status === 'prepared'
   );
   // Filter for statistics: Completed orders only (paid)
   const completedOrders = orders.filter(o => o.status === 'completed');
@@ -97,8 +96,8 @@ export function AdminPanel() {
   };
 
   const openPromoModal = (promo?: Promo) => {
-    const defaultCondition: any = { type: 'product_id', threshold: 1, target: '' };
-    const defaultReward: any = { type: 'discount_percentage', value: 10 };
+    const defaultCondition: any = { type: 'product_id', threshold: 1, target: '', targets: [] };
+    const defaultReward: any = { type: 'discount_percentage', value: 10, promoPrice: 0, discountAmount: 0, extraPoints: 0 };
 
     setEditingPromo(promo ? {
       ...promo,
@@ -283,6 +282,7 @@ export function AdminPanel() {
                   className="w-full bg-neutral-800 rounded-xl p-2 border border-white/5 text-sm"
                 >
                   <option value="product_id">Producto Específico</option>
+                  <option value="product_list">Lista de Productos</option>
                   <option value="min_total">Monto Mínimo</option>
                   <option value="min_quantity">Cantidad Mínima</option>
                 </select>
@@ -304,6 +304,33 @@ export function AdminPanel() {
                       <option key={p.id} value={p.id}>{p.name}</option>
                     ))}
                   </select>
+                </div>
+              )}
+
+              {editingPromo?.condition?.type === 'product_list' && (
+                <div className="col-span-2">
+                  <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1 block">Seleccionar Productos</label>
+                  <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 bg-neutral-900 rounded-xl border border-white/5">
+                    {products.map(p => (
+                      <label key={p.id} className="flex items-center gap-2 text-[10px]">
+                        <input 
+                          type="checkbox"
+                          checked={editingPromo?.condition?.targets?.includes(p.id)}
+                          onChange={e => {
+                            const targets = editingPromo?.condition?.targets || [];
+                            const newTargets = e.target.checked 
+                              ? [...targets, p.id]
+                              : targets.filter(id => id !== p.id);
+                            setEditingPromo(prev => ({
+                              ...prev!,
+                              condition: { ...prev!.condition!, targets: newTargets }
+                            }));
+                          }}
+                        />
+                        {p.name}
+                      </label>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -340,10 +367,12 @@ export function AdminPanel() {
                   <option value="discount_percentage">Descuento %</option>
                   <option value="discount_fixed">Descuento Fijo (S/)</option>
                   <option value="bonus_points">Puntos Extra</option>
+                  <option value="promo_price">Precio de Promo (Final)</option>
+                  <option value="multi_reward">Recompensa Múltiple</option>
                 </select>
               </div>
               <div>
-                <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1 block">Valor</label>
+                <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1 block">Valor Principal</label>
                 <input 
                   type="number" 
                   value={editingPromo?.reward?.value || ''} 
@@ -355,6 +384,51 @@ export function AdminPanel() {
                 />
               </div>
             </div>
+
+            {editingPromo?.reward?.type === 'promo_price' && (
+              <div>
+                <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1 block">Precio Final (S/)</label>
+                <input 
+                  type="number" 
+                  step="0.1"
+                  value={editingPromo?.reward?.promoPrice || ''} 
+                  onChange={e => setEditingPromo(prev => ({ 
+                    ...prev!, 
+                    reward: { ...prev!.reward!, promoPrice: parseFloat(e.target.value) || 0 } 
+                  }))}
+                  className="w-full bg-neutral-800 rounded-xl p-2 border border-white/5 text-sm"
+                />
+              </div>
+            )}
+
+            {editingPromo?.reward?.type === 'multi_reward' && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1 block">Descuento (S/)</label>
+                  <input 
+                    type="number" 
+                    value={editingPromo?.reward?.discountAmount || ''} 
+                    onChange={e => setEditingPromo(prev => ({ 
+                      ...prev!, 
+                      reward: { ...prev!.reward!, discountAmount: parseFloat(e.target.value) || 0 } 
+                    }))}
+                    className="w-full bg-neutral-800 rounded-xl p-2 border border-white/5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1 block">Puntos Extra</label>
+                  <input 
+                    type="number" 
+                    value={editingPromo?.reward?.extraPoints || ''} 
+                    onChange={e => setEditingPromo(prev => ({ 
+                      ...prev!, 
+                      reward: { ...prev!.reward!, extraPoints: parseFloat(e.target.value) || 0 } 
+                    }))}
+                    className="w-full bg-neutral-800 rounded-xl p-2 border border-white/5 text-sm"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-3 p-3 bg-neutral-800 rounded-xl border border-white/5">
@@ -594,8 +668,11 @@ export function AdminPanel() {
       <section>
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-display font-bold">Pedidos Activos</h2>
-          <div className="w-10 h-10 bg-amber-500/10 text-amber-500 rounded-2xl flex items-center justify-center font-display font-bold text-lg border border-amber-500/20 shadow-lg shadow-amber-500/5">
-            {activeOrders.length}
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Activos</span>
+            <div className="w-8 h-8 bg-amber-500/10 text-amber-500 rounded-xl flex items-center justify-center font-display font-bold text-sm border border-amber-500/20 shadow-lg shadow-amber-500/5">
+              {activeOrders.length}
+            </div>
           </div>
         </div>
         

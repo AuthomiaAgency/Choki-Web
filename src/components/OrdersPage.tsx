@@ -10,8 +10,23 @@ export function OrdersPage() {
   
   const allOrders = user?.history || [];
 
-  // Sort orders: Pending/Prepared first, then Completed/Cancelled
-  const sortedOrders = [...allOrders].sort((a, b) => {
+  // Filter orders based on user requirements:
+  // 1. Cancelled orders disappear.
+  // 2. Completed/Paid orders stay for 24 hours.
+  // 3. Prepared/Pending orders stay until they change.
+  const visibleOrders = allOrders.filter(order => {
+    if (order.status === 'cancelled') return false;
+    if (order.status === 'completed') {
+      const orderDate = new Date(order.date).getTime();
+      const now = new Date().getTime();
+      const hoursDiff = (now - orderDate) / (1000 * 60 * 60);
+      return hoursDiff <= 24;
+    }
+    return true;
+  });
+
+  // Sort orders: Pending/Prepared first, then Completed
+  const sortedOrders = [...visibleOrders].sort((a, b) => {
     const scoreA = a.status === 'pending' || a.status === 'prepared' ? 2 : 1;
     const scoreB = b.status === 'pending' || b.status === 'prepared' ? 2 : 1;
     if (scoreA !== scoreB) return scoreB - scoreA;

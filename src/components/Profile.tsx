@@ -107,24 +107,18 @@ export function Profile() {
             <div className="mt-6 space-y-3">
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-white/5 p-3 rounded-2xl border border-white/5">
-                  <p className="text-[8px] uppercase tracking-widest opacity-60 mb-1">Pedidos Totales</p>
-                  <p className="text-xl font-display font-bold">{orders.length}</p>
-                </div>
-                <div className="bg-white/5 p-3 rounded-2xl border border-white/5">
                   <p className="text-[8px] uppercase tracking-widest opacity-60 mb-1">Completados</p>
                   <p className="text-xl font-display font-bold text-emerald-400">
                     {orders.filter(o => o.status === 'completed').length}
                   </p>
                 </div>
+                <div className="bg-white/5 p-3 rounded-2xl border border-white/5">
+                  <p className="text-[8px] uppercase tracking-widest opacity-60 mb-1">Cancelados</p>
+                  <p className="text-xl font-display font-bold text-red-400">
+                    {orders.filter(o => o.status === 'cancelled').length}
+                  </p>
+                </div>
               </div>
-              
-              <button 
-                onClick={() => setActiveTab('admin-stats')}
-                className="w-full py-4 bg-primary/10 border border-primary/20 rounded-2xl flex items-center justify-center gap-3 text-primary font-display font-bold hover:bg-primary/20 transition-all active:scale-95"
-              >
-                <PieChartIcon size={20} />
-                Control de Estadísticas
-              </button>
             </div>
           )}
         </div>
@@ -143,21 +137,6 @@ export function Profile() {
             <div className="text-left">
               <p className="font-display font-bold text-neutral-900 dark:text-white text-base sm:text-lg">Configuración</p>
               <p className="text-[10px] sm:text-xs text-neutral-500">Personaliza tu perfil y seguridad</p>
-            </div>
-          </div>
-        </button>
-
-        <button 
-          onClick={toggleTheme}
-          className="flex items-center justify-between p-4 sm:p-6 bg-white dark:bg-neutral-900 rounded-[1.5rem] sm:rounded-[2rem] border border-neutral-200 dark:border-white/5 hover:scale-[1.01] active:scale-[0.99] transition-all shadow-sm"
-        >
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="w-10 h-10 sm:w-14 sm:h-14 bg-neutral-100 dark:bg-neutral-800 rounded-xl sm:rounded-2xl flex items-center justify-center text-neutral-600 dark:text-neutral-300">
-              {theme === 'dark' ? <Moon size={20} className="sm:size-7" /> : <Sun size={20} className="sm:size-7" />}
-            </div>
-            <div className="text-left">
-              <p className="font-display font-bold text-neutral-900 dark:text-white text-base sm:text-lg">Tema Visual</p>
-              <p className="text-[10px] sm:text-xs text-neutral-500">Modo {theme === 'dark' ? 'Oscuro' : 'Claro'}</p>
             </div>
           </div>
         </button>

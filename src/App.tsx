@@ -17,11 +17,19 @@ import { useState } from 'react';
 import { Product } from './types';
 import { ShoppingBag, Search, Package, Settings } from 'lucide-react';
 import { Toaster } from 'sonner';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 
 function AppContent() {
   const { user, products, activeTab, toggleCart, cart, setActiveTab, justAdded } = useApp();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  const filteredProducts = products.filter(p => 
+    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.category?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   if (!user) {
     return (
@@ -81,7 +89,29 @@ function AppContent() {
           </div>
         </div>
         <div className="flex items-center gap-1 sm:gap-2">
-          <button className="p-2 text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors">
+          <AnimatePresence>
+            {isSearchOpen && (
+              <motion.div
+                initial={{ width: 0, opacity: 0 }}
+                animate={{ width: 'auto', opacity: 1 }}
+                exit={{ width: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <input
+                  type="text"
+                  placeholder="Buscar..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-white/5 rounded-xl px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-primary/50 w-32 sm:w-48"
+                  autoFocus
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <button 
+            onClick={() => setIsSearchOpen(!isSearchOpen)}
+            className={`p-2 transition-colors ${isSearchOpen ? 'text-primary' : 'text-neutral-400 hover:text-neutral-900 dark:hover:text-white'}`}
+          >
             <Search size={20} />
           </button>
           {isAdmin ? (
@@ -122,7 +152,7 @@ function AppContent() {
 
             {/* Grid */}
             <div className="px-4 sm:px-6 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 pb-6">
-              {products.map(product => (
+              {filteredProducts.map(product => (
                 <ProductCard 
                   key={product.id} 
                   product={product} 

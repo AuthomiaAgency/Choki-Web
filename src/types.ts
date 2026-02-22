@@ -4,6 +4,7 @@ export interface Product {
   id: string;
   name: string;
   description: string;
+  category?: string;
   price: number;
   points: number;
   image: string;
@@ -39,14 +40,18 @@ export interface ChokiPointTransaction {
 }
 
 export interface PromoCondition {
-  type: 'product_id' | 'min_total' | 'min_quantity';
+  type: 'product_id' | 'min_total' | 'min_quantity' | 'product_list';
   target?: string; // Product ID if type is product_id
+  targets?: string[]; // Product IDs if type is product_list
   threshold: number; // Quantity or Amount
 }
 
 export interface PromoReward {
-  type: 'discount_percentage' | 'discount_fixed' | 'bonus_points';
-  value: number;
+  type: 'discount_percentage' | 'discount_fixed' | 'bonus_points' | 'promo_price' | 'multi_reward';
+  value: number; // Primary value
+  promoPrice?: number; // Final price
+  discountAmount?: number; // Discount amount
+  extraPoints?: number; // Extra points
 }
 
 export interface Promo {

@@ -338,10 +338,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const placeOrder = async (hasPromo = false) => {
     if (cart.length === 0 || !user || !db) return;
 
-    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    let total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     let pointsEarned = Math.floor(total * 10);
+    let promoApplied = hasPromo;
 
-    // Check for bonus points promo
+    // Check for sophisticated promos
     const activePromos = promos.filter(p => p.active);
     for (const promo of activePromos) {
       const { condition, reward } = promo;
@@ -352,6 +353,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (condition.type === 'product_id') {
         const targetItem = cart.find(item => item.id === condition.target);
         if (targetItem && targetItem.quantity >= condition.threshold) {
+          conditionMet = true;
+        }
+      } else if (condition.type === 'product_list') {
+        const matchingItems = cart.filter(item => condition.targets?.includes(item.id));
+        const totalQty = matchingItems.reduce((sum, item) => sum + item.quantity, 0);
+        if (totalQty >= condition.threshold) {
           conditionMet = true;
         }
       } else if (condition.type === 'min_total') {
@@ -365,8 +372,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      if (conditionMet && reward.type === 'bonus_points') {
-        pointsEarned += reward.value;
+      if (conditionMet) {
+        promoApplied = true;
+        if (reward.type === 'bonus_points') {
+          pointsEarned += reward.value;
+        } else if (reward.type === 'discount_percentage') {
+          total = total * (1 - reward.value / 100);
+        } else if (reward.type === 'discount_fixed') {
+          total = Math.max(0, total - reward.value);
+        } else if (reward.type === 'promo_price') {
+          total = reward.promoPrice || total;
+        } else if (reward.type === 'multi_reward') {
+          if (reward.discountAmount) total = Math.max(0, total - reward.discountAmount);
+          if (reward.extraPoints) pointsEarned += reward.extraPoints;
+          if (reward.promoPrice) total = reward.promoPrice;
+        }
       }
     }
     
@@ -378,7 +398,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       total,
       status: 'pending',
       date: new Date().toISOString(),
-      hasPromo,
+      hasPromo: promoApplied,
       pointsEarned
     };
 

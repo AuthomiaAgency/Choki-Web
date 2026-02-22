@@ -145,37 +145,6 @@ export function SettingsPage() {
           </div>
         </section>
 
-        {/* Admin Shop Management */}
-        {user?.role === 'admin' && (
-          <section className="space-y-4">
-            <h2 className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.2em]">Administración</h2>
-            <div className="grid grid-cols-2 gap-3">
-              <button 
-                onClick={() => setActiveTab('admin-shop')}
-                className="flex flex-col items-center justify-center p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl active:scale-[0.98] transition-all gap-2"
-              >
-                <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-white">
-                  <ShoppingBag size={20} />
-                </div>
-                <div className="text-center">
-                  <h3 className="font-display font-bold text-emerald-600 dark:text-emerald-400 text-xs">Productos</h3>
-                </div>
-              </button>
-              <button 
-                onClick={() => setActiveTab('admin-promos')}
-                className="flex flex-col items-center justify-center p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl active:scale-[0.98] transition-all gap-2"
-              >
-                <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center text-white">
-                  <Tag size={20} />
-                </div>
-                <div className="text-center">
-                  <h3 className="font-display font-bold text-amber-600 dark:text-amber-400 text-xs">Promos</h3>
-                </div>
-              </button>
-            </div>
-          </section>
-        )}
-
         {/* Appearance */}
         <section className="space-y-4">
           <h2 className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.2em]">Apariencia</h2>

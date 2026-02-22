@@ -24,6 +24,8 @@ export default defineConfig(({mode}) => {
           background_color: '#0a0a0a',
           display: 'standalone',
           orientation: 'portrait',
+          start_url: '/',
+          scope: '/',
           categories: ['shopping', 'food'],
           icons: [
             {

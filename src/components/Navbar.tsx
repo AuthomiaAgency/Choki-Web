@@ -12,7 +12,6 @@ export function Navbar() {
   ];
 
   const adminTabs = [
-    { id: 'home', icon: Home, label: 'Inicio' },
     { id: 'admin-shop', icon: Store, label: 'Tienda' },
     { id: 'admin-promos', icon: Tag, label: 'Promos' },
     { id: 'admin-orders', icon: Package, label: 'Pedidos' },
