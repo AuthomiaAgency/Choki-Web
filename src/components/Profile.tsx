@@ -25,12 +25,13 @@ export function Profile() {
   };
 
   const handleCreateLanding = async () => {
-    if (!newLanding.name || !newLanding.slug) {
-      toast.error('Nombre y URL son requeridos');
+    if (!newLanding.name) {
+      toast.error('Nombre es requerido');
       return;
     }
     try {
-      await addCustomLanding(newLanding);
+      const generatedSlug = newLanding.name.toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).substring(2, 7);
+      await addCustomLanding({ ...newLanding, slug: generatedSlug });
       setNewLanding({ name: '', welcomeMessage: '', buttonText: '', slug: '' });
       setIsCreatingLanding(false);
       toast.success('Landing creada con éxito');
@@ -252,13 +253,7 @@ export function Profile() {
                       onChange={e => setNewLanding({...newLanding, name: e.target.value})}
                       className="bg-neutral-950 border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:border-primary/50"
                     />
-                    <input 
-                      type="text" 
-                      placeholder="Identificador URL (ej: familia-promo)" 
-                      value={newLanding.slug}
-                      onChange={e => setNewLanding({...newLanding, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})}
-                      className="bg-neutral-950 border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:border-primary/50"
-                    />
+                    {/* Slug is now auto-generated */}
                     <input 
                       type="text" 
                       placeholder="Mensaje de Bienvenida (Opcional)" 

@@ -341,28 +341,28 @@ export function AdminPanel() {
 
             <div className="p-4 bg-neutral-800/50 rounded-xl border border-white/5 space-y-4">
             <h4 className="text-sm font-bold text-emerald-500">Recompensa</h4>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2 sm:col-span-1">
-                <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1 block">Tipo</label>
+            <div className="grid grid-cols-1 gap-3">
+              <div>
+                <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1 block">Tipo de Recompensa</label>
                 <select 
                   value={editingPromo?.reward?.type}
                   onChange={e => setEditingPromo(prev => ({ 
                     ...prev!, 
-                    reward: { ...prev!.reward!, type: e.target.value as any } 
+                    reward: { ...prev!.reward!, type: e.target.value as any, value: 0, promoPrice: 0, discountAmount: 0, extraPoints: 0 } 
                   }))}
                   className="w-full bg-neutral-800 rounded-xl p-2 border border-white/5 text-sm"
                 >
-                  <option value="discount_percentage">Descuento %</option>
+                  <option value="discount_percentage">Descuento Porcentual (%)</option>
                   <option value="discount_fixed">Descuento Fijo (S/)</option>
                   <option value="bonus_points">Puntos Extra</option>
-                  <option value="promo_price">Precio de Promo (Final)</option>
-                  <option value="multi_reward">Recompensa Múltiple</option>
+                  <option value="promo_price">Precio Fijo Promocional</option>
+                  <option value="multi_reward">Recompensa Múltiple (Desc + Puntos)</option>
                 </select>
               </div>
               
               {editingPromo?.reward?.type === 'discount_percentage' && (
                 <div>
-                  <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1 block">Porcentaje (%)</label>
+                  <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1 block">Porcentaje de Descuento (%)</label>
                   <input 
                     type="number" 
                     value={editingPromo?.reward?.value || ''} 
@@ -371,13 +371,14 @@ export function AdminPanel() {
                       reward: { ...prev!.reward!, value: parseFloat(e.target.value) || 0 } 
                     }))}
                     className="w-full bg-neutral-800 rounded-xl p-2 border border-white/5 text-sm"
+                    placeholder="Ej: 20"
                   />
                 </div>
               )}
 
               {editingPromo?.reward?.type === 'discount_fixed' && (
                 <div>
-                  <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1 block">Monto (S/)</label>
+                  <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1 block">Monto a Descontar (S/)</label>
                   <input 
                     type="number" 
                     value={editingPromo?.reward?.value || ''} 
@@ -386,13 +387,14 @@ export function AdminPanel() {
                       reward: { ...prev!.reward!, value: parseFloat(e.target.value) || 0 } 
                     }))}
                     className="w-full bg-neutral-800 rounded-xl p-2 border border-white/5 text-sm"
+                    placeholder="Ej: 5.00"
                   />
                 </div>
               )}
 
               {editingPromo?.reward?.type === 'bonus_points' && (
                 <div>
-                  <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1 block">Puntos</label>
+                  <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1 block">Puntos de Regalo</label>
                   <input 
                     type="number" 
                     value={editingPromo?.reward?.value || ''} 
@@ -401,71 +403,76 @@ export function AdminPanel() {
                       reward: { ...prev!.reward!, value: parseFloat(e.target.value) || 0 } 
                     }))}
                     className="w-full bg-neutral-800 rounded-xl p-2 border border-white/5 text-sm"
+                    placeholder="Ej: 100"
                   />
                 </div>
               )}
+
+              {editingPromo?.reward?.type === 'promo_price' && (
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1 block">Precio Final de la Promo (S/)</label>
+                  <input 
+                    type="number" 
+                    step="0.1"
+                    value={editingPromo?.reward?.promoPrice || ''} 
+                    onChange={e => setEditingPromo(prev => ({ 
+                      ...prev!, 
+                      reward: { ...prev!.reward!, promoPrice: parseFloat(e.target.value) || 0 } 
+                    }))}
+                    className="w-full bg-neutral-800 rounded-xl p-2 border border-white/5 text-sm"
+                    placeholder="Ej: 9.90"
+                  />
+                  <p className="text-[9px] text-neutral-500 mt-1">El cliente pagará este precio exacto por los productos seleccionados.</p>
+                </div>
+              )}
+
+              {editingPromo?.reward?.type === 'multi_reward' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1 block">Descuento (S/)</label>
+                    <input 
+                      type="number" 
+                      value={editingPromo?.reward?.discountAmount || ''} 
+                      onChange={e => setEditingPromo(prev => ({ 
+                        ...prev!, 
+                        reward: { ...prev!.reward!, discountAmount: parseFloat(e.target.value) || 0 } 
+                      }))}
+                      className="w-full bg-neutral-800 rounded-xl p-2 border border-white/5 text-sm"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1 block">Puntos Extra</label>
+                    <input 
+                      type="number" 
+                      value={editingPromo?.reward?.extraPoints || ''} 
+                      onChange={e => setEditingPromo(prev => ({ 
+                        ...prev!, 
+                        reward: { ...prev!.reward!, extraPoints: parseFloat(e.target.value) || 0 } 
+                      }))}
+                      className="w-full bg-neutral-800 rounded-xl p-2 border border-white/5 text-sm"
+                      placeholder="0"
+                    />
+                  </div>
+                  {editingPromo?.condition?.type === 'product_id' && (
+                     <div className="col-span-2">
+                        <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1 block">O Precio Fijo (Opcional)</label>
+                        <input 
+                          type="number" 
+                          step="0.1"
+                          value={editingPromo?.reward?.promoPrice || ''} 
+                          onChange={e => setEditingPromo(prev => ({ 
+                            ...prev!, 
+                            reward: { ...prev!.reward!, promoPrice: parseFloat(e.target.value) || 0 } 
+                          }))}
+                          className="w-full bg-neutral-800 rounded-xl p-2 border border-white/5 text-sm"
+                          placeholder="Si se llena, ignora el descuento fijo"
+                        />
+                     </div>
+                  )}
+                </div>
+              )}
             </div>
-
-            {editingPromo?.reward?.type === 'promo_price' && (
-              <div>
-                <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1 block">Precio Final (S/)</label>
-                <input 
-                  type="number" 
-                  step="0.1"
-                  value={editingPromo?.reward?.promoPrice || ''} 
-                  onChange={e => setEditingPromo(prev => ({ 
-                    ...prev!, 
-                    reward: { ...prev!.reward!, promoPrice: parseFloat(e.target.value) || 0, value: 0 } 
-                  }))}
-                  className="w-full bg-neutral-800 rounded-xl p-2 border border-white/5 text-sm"
-                />
-              </div>
-            )}
-
-            {editingPromo?.reward?.type === 'multi_reward' && (
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1 block">Descuento Fijo (S/)</label>
-                  <input 
-                    type="number" 
-                    value={editingPromo?.reward?.discountAmount || ''} 
-                    onChange={e => setEditingPromo(prev => ({ 
-                      ...prev!, 
-                      reward: { ...prev!.reward!, discountAmount: parseFloat(e.target.value) || 0 } 
-                    }))}
-                    className="w-full bg-neutral-800 rounded-xl p-2 border border-white/5 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1 block">Puntos Extra</label>
-                  <input 
-                    type="number" 
-                    value={editingPromo?.reward?.extraPoints || ''} 
-                    onChange={e => setEditingPromo(prev => ({ 
-                      ...prev!, 
-                      reward: { ...prev!.reward!, extraPoints: parseFloat(e.target.value) || 0 } 
-                    }))}
-                    className="w-full bg-neutral-800 rounded-xl p-2 border border-white/5 text-sm"
-                  />
-                </div>
-                {editingPromo?.condition?.type === 'product_id' && (
-                   <div className="col-span-2">
-                      <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1 block">Precio Promo (Opcional)</label>
-                      <input 
-                        type="number" 
-                        step="0.1"
-                        value={editingPromo?.reward?.promoPrice || ''} 
-                        onChange={e => setEditingPromo(prev => ({ 
-                          ...prev!, 
-                          reward: { ...prev!.reward!, promoPrice: parseFloat(e.target.value) || 0 } 
-                        }))}
-                        className="w-full bg-neutral-800 rounded-xl p-2 border border-white/5 text-sm"
-                        placeholder="Si se establece, anula el descuento fijo"
-                      />
-                   </div>
-                )}
-              </div>
-            )}
           </div>
 
           <div className="flex items-center gap-3 p-3 bg-neutral-800 rounded-xl border border-white/5">

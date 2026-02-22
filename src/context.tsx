@@ -367,7 +367,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const getAppliedPromo = () => {
     const activePromos = promos.filter(p => p.active);
     let bestPromo = null;
-    let maxSavings = 0;
+    let maxSavings = -1; 
 
     for (const promo of activePromos) {
       const { condition, reward } = promo;
@@ -375,6 +375,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       let points = 0;
       let multiplier = 0;
 
+      // 1. Calculate Multiplier
       if (condition.type === 'product_id') {
         const targetItem = cart.find(item => item.id === condition.target);
         if (targetItem && targetItem.quantity >= condition.threshold) {
@@ -389,8 +390,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       } else if (condition.type === 'min_total') {
         const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         if (total >= condition.threshold) {
-           // For total-based promos, usually it's once per order, but user asked for proportionality.
-           // Let's assume proportionality for total too if it makes sense (e.g. every 100 soles get 10 off).
            multiplier = Math.floor(total / condition.threshold);
         }
       } else if (condition.type === 'min_quantity') {
@@ -401,66 +400,104 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
 
       if (multiplier > 0) {
-        // Calculate savings based on reward type
-        if (reward.type === 'discount_fixed') {
-          savings = (reward.value || 0) * multiplier;
-        } else if (reward.type === 'discount_percentage') {
-          // Percentage usually applies to the whole eligible amount, but let's stick to the multiplier logic for "sets"
-          // Actually, percentage is usually on the total. 
-          // If it's a product promo, it's percentage off those products.
-          if (condition.type === 'product_id' || condition.type === 'product_list') {
-             // Calculate price of eligible items
-             // This is complex for mixed lists. Let's simplify: 
-             // If it's a set of products, we apply % off the set's value.
-             // For now, let's assume percentage applies to the *threshold* amount of items per set.
-             // But usually percentage is just "10% off".
-             // Let's treat percentage as "global" for the eligible items.
-             const eligibleItems = condition.type === 'product_id' 
-                ? cart.filter(i => i.id === condition.target)
-                : cart.filter(i => condition.targets?.includes(i.id));
-             
-             const eligibleTotal = eligibleItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
-             savings = eligibleTotal * ((reward.value || 0) / 100);
-          } else {
-             const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-             savings = total * ((reward.value || 0) / 100);
-          }
+        // 2. Calculate Benefits
+        
+        // Helper to get eligible items value for percentage/fixed calculation
+        const getEligibleValue = () => {
+           if (condition.type === 'product_id') {
+              const item = cart.find(i => i.id === condition.target);
+              return item ? item.price * (condition.threshold * multiplier) : 0;
+           } else if (condition.type === 'product_list') {
+              // For product list, we take the items that contribute to the sets
+              // We'll approximate by taking the average price of matching items * total count needed
+              // Or better: Sort items by price (descending) and take the top N items?
+              // Usually promos apply to the *cheapest* or *specific* items.
+              // Let's apply to the total value of matching items for simplicity and user benefit.
+              const matchingItems = cart.filter(item => condition.targets?.includes(item.id));
+              return matchingItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+           } else {
+              return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+           }
+        };
+
+        if (reward.type === 'discount_percentage') {
+           const eligibleValue = getEligibleValue();
+           savings = eligibleValue * ((reward.value || 0) / 100);
+        } else if (reward.type === 'discount_fixed') {
+           savings = (reward.value || 0) * multiplier;
         } else if (reward.type === 'promo_price') {
-          // Fixed price for the set. 
-          // Savings = (Original Price of Set - Promo Price) * Multiplier
-          // We need the original price of the items in the set.
-          // This is tricky for 'product_list' if items have different prices.
-          // We'll assume the cheapest or average? No, let's sum the prices of the items involved.
-          // Simplified: Assume uniform price or specific target.
-          if (condition.type === 'product_id') {
-             const item = cart.find(i => i.id === condition.target);
-             if (item) {
-               const originalSetPrice = item.price * condition.threshold;
-               const promoSetPrice = reward.value || 0;
-               savings = (originalSetPrice - promoSetPrice) * multiplier;
-             }
-          }
-          // For product_list, it's harder to know WHICH items form the set.
-          // We will skip complex product_list promo_price calculation for now or assume average.
+           // Fixed price for the set
+           if (condition.type === 'product_id') {
+              const item = cart.find(i => i.id === condition.target);
+              if (item) {
+                const originalSetPrice = item.price * condition.threshold;
+                const promoSetPrice = reward.promoPrice || 0;
+                savings = (originalSetPrice - promoSetPrice) * multiplier;
+              }
+           } else if (condition.type === 'product_list') {
+              // For product list, we need to find the items that make up the set.
+              // We will take the items in the cart that match, calculate their total price,
+              // and subtract the promo price * multiplier.
+              // To be fair, we should probably take the items that maximize/minimize savings?
+              // Let's assume it applies to the *total* of matching items, but that's risky if they bought more than the threshold.
+              // Correct approach: Take the first (threshold * multiplier) items found.
+              let countNeeded = condition.threshold * multiplier;
+              let originalPriceTotal = 0;
+              const matchingItems = cart.filter(item => condition.targets?.includes(item.id));
+              
+              for (const item of matchingItems) {
+                 const qtyToTake = Math.min(item.quantity, countNeeded);
+                 originalPriceTotal += item.price * qtyToTake;
+                 countNeeded -= qtyToTake;
+                 if (countNeeded <= 0) break;
+              }
+              
+              const promoTotal = (reward.promoPrice || 0) * multiplier;
+              savings = originalPriceTotal - promoTotal;
+           }
         } else if (reward.type === 'bonus_points') {
            points = (reward.value || 0) * multiplier;
         } else if (reward.type === 'multi_reward') {
            if (reward.discountAmount) savings += (reward.discountAmount * multiplier);
            if (reward.extraPoints) points += (reward.extraPoints * multiplier);
+           
            if (reward.promoPrice) {
-              // Handle promo price in multi reward similar to above
+              // If promoPrice exists, it overrides discountAmount for the price part
+              // We calculate savings from promoPrice and REPLACE discountAmount savings
+              let priceSavings = 0;
+              
               if (condition.type === 'product_id') {
                  const item = cart.find(i => i.id === condition.target);
                  if (item) {
                    const originalSetPrice = item.price * condition.threshold;
-                   const promoSetPrice = reward.promoPrice;
-                   savings += (originalSetPrice - promoSetPrice) * multiplier;
+                   priceSavings = (originalSetPrice - reward.promoPrice) * multiplier;
                  }
+              } else if (condition.type === 'product_list') {
+                 let countNeeded = condition.threshold * multiplier;
+                 let originalPriceTotal = 0;
+                 const matchingItems = cart.filter(item => condition.targets?.includes(item.id));
+                 for (const item of matchingItems) {
+                    const qtyToTake = Math.min(item.quantity, countNeeded);
+                    originalPriceTotal += item.price * qtyToTake;
+                    countNeeded -= qtyToTake;
+                    if (countNeeded <= 0) break;
+                 }
+                 priceSavings = originalPriceTotal - ((reward.promoPrice || 0) * multiplier);
+              }
+              
+              if (priceSavings > 0) {
+                 // If we calculated a valid promo price savings, use it.
+                 // We add it to any EXISTING savings from other sources? 
+                 // No, promoPrice usually implies "This is the price".
+                 // So we should probably ignore discountAmount if promoPrice is set.
+                 // But we already added discountAmount above. Let's subtract it and add priceSavings.
+                 if (reward.discountAmount) savings -= (reward.discountAmount * multiplier);
+                 savings += priceSavings;
               }
            }
         }
 
-        if (savings > maxSavings || (savings === maxSavings && points > 0)) {
+        if (savings > maxSavings || (savings === maxSavings && points > (bestPromo?.points || 0))) {
           maxSavings = savings;
           bestPromo = { promo, savings, points };
         }
