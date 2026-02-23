@@ -183,10 +183,13 @@ export function OrdersPage() {
                                 <p className="text-[9px] text-neutral-500 font-medium">Promo aplicada</p>
                               </div>
                             </div>
-                            <span className="relative z-10 text-emerald-500 font-display font-bold text-lg">
-                               {order.items.reduce((s, i) => s + i.price * i.quantity, 0) > order.total 
-                                 ? `-${formatCurrency(order.items.reduce((s, i) => s + i.price * i.quantity, 0) - order.total)}`
-                                 : `+${order.pointsEarned - Math.floor(order.total * 10)} Pts`}
+                            <span className="relative z-10 text-emerald-500 font-display font-bold text-lg flex flex-col items-end">
+                               {order.items.reduce((s, i) => s + i.price * i.quantity, 0) > order.total && (
+                                 <span>-{formatCurrency(order.items.reduce((s, i) => s + i.price * i.quantity, 0) - order.total)}</span>
+                               )}
+                               {order.pointsEarned - Math.floor(order.total * 10) > 0 && (
+                                 <span className="text-xs bg-emerald-500/20 px-2 py-0.5 rounded-md mt-1">+{order.pointsEarned - Math.floor(order.total * 10)} Pts</span>
+                               )}
                             </span>
                          </div>
                       )}

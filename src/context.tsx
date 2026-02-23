@@ -488,7 +488,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
                  const item = cart.find(i => i.id === condition.target);
                  if (item) {
                    const originalSetPrice = item.price * condition.threshold;
-                   priceSavings = (originalSetPrice - promoSetPrice) * multiplier;
+                   if (promoSetPrice < originalSetPrice && promoSetPrice > 0) {
+                     priceSavings = (originalSetPrice - promoSetPrice) * multiplier;
+                   }
                  }
               } else if (condition.type === 'product_list') {
                  let countNeeded = condition.threshold * multiplier;
@@ -500,7 +502,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     countNeeded -= qtyToTake;
                     if (countNeeded <= 0) break;
                  }
-                 priceSavings = originalPriceTotal - (promoSetPrice * multiplier);
+                 const promoTotal = promoSetPrice * multiplier;
+                 if (promoTotal < originalPriceTotal && promoTotal > 0) {
+                   priceSavings = originalPriceTotal - promoTotal;
+                 }
+              } else if (condition.type === 'min_quantity') {
+                 let countNeeded = condition.threshold * multiplier;
+                 let originalPriceTotal = 0;
+                 const sortedCart = [...cart].sort((a, b) => a.price - b.price);
+                 for (const item of sortedCart) {
+                    const qtyToTake = Math.min(item.quantity, countNeeded);
+                    originalPriceTotal += item.price * qtyToTake;
+                    countNeeded -= qtyToTake;
+                    if (countNeeded <= 0) break;
+                 }
+                 const promoTotal = promoSetPrice * multiplier;
+                 if (promoTotal < originalPriceTotal && promoTotal > 0) {
+                   priceSavings = originalPriceTotal - promoTotal;
+                 }
               }
               
               if (priceSavings > 0) {

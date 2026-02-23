@@ -143,14 +143,11 @@ export function CartDrawer() {
                         </div>
                       </div>
                       <div className="relative z-10 text-right">
-                        {discount > 0 ? (
+                        {(discount > 0 || extraPoints > 0) && (
                           <div className="flex flex-col items-end">
-                            <span className="text-[10px] text-neutral-400 uppercase font-bold tracking-wider">Ahorras</span>
-                            <span className="text-2xl font-display font-bold text-emerald-400 drop-shadow-sm">-{formatCurrency(discount)}</span>
-                          </div>
-                        ) : (
-                          <div className="bg-primary text-neutral-950 px-3 py-1 rounded-lg font-bold text-xs shadow-lg shadow-primary/20">
-                            ¡Puntos!
+                            {discount > 0 && <span className="text-[10px] text-neutral-400 uppercase font-bold tracking-wider">Ahorras</span>}
+                            {discount > 0 && <span className="text-2xl font-display font-bold text-emerald-400 drop-shadow-sm">-{formatCurrency(discount)}</span>}
+                            {extraPoints > 0 && <span className="bg-primary text-neutral-950 px-3 py-1 rounded-lg font-bold text-xs shadow-lg shadow-primary/20 mt-1">+{extraPoints} Pts</span>}
                           </div>
                         )}
                       </div>
@@ -178,7 +175,11 @@ export function CartDrawer() {
                           </span>
                         )}
                       </span>
-                      <span>{discount > 0 ? `-${formatCurrency(discount)}` : `+${extraPoints} Pts`}</span>
+                      <span>
+                        {discount > 0 && `-${formatCurrency(discount)}`}
+                        {discount > 0 && extraPoints > 0 && ' / '}
+                        {extraPoints > 0 && `+${extraPoints} Pts`}
+                      </span>
                     </div>
                   )}
                   <div className="flex justify-between items-center pt-2 border-t border-white/5">

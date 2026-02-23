@@ -61,7 +61,11 @@ export function CheckoutPage() {
                       </span>
                     )}
                   </span>
-                  <span>{discount > 0 ? `-${formatCurrency(discount)}` : `+${appliedPromoData.points} Puntos`}</span>
+                  <span>
+                    {discount > 0 && `-${formatCurrency(discount)}`}
+                    {discount > 0 && appliedPromoData.points > 0 && ' / '}
+                    {appliedPromoData.points > 0 && `+${appliedPromoData.points} Puntos`}
+                  </span>
                 </div>
               )}
               <div className="flex justify-between text-xl sm:text-2xl font-display font-bold text-neutral-900 dark:text-white pt-4">
