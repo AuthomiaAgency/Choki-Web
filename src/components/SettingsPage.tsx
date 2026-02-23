@@ -16,6 +16,7 @@ export function SettingsPage() {
   const [verificationCode, setVerificationCode] = useState('');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isPasswordCollapsed, setIsPasswordCollapsed] = useState(true);
+  const [notifications, setNotifications] = useState(localStorage.getItem('notificationsEnabled') !== 'false');
 
   const handleSaveAll = async () => {
     try {
@@ -298,6 +299,37 @@ export function SettingsPage() {
               </motion.div>
             )}
           </AnimatePresence>
+        </section>
+
+        {/* Notifications */}
+        <section className="space-y-4">
+          <h2 className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.2em]">Notificaciones</h2>
+          <div className="flex items-center justify-between p-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-white/5 rounded-2xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center">
+                <Bell size={20} />
+              </div>
+              <div>
+                <p className="font-bold text-neutral-900 dark:text-white">Notificaciones Push</p>
+                <p className="text-xs text-neutral-500">Recibe alertas de tus pedidos</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => {
+                const newState = !notifications;
+                setNotifications(newState);
+                localStorage.setItem('notificationsEnabled', newState.toString());
+                if (newState) {
+                  toast.success('Notificaciones activadas');
+                } else {
+                  toast.info('Notificaciones desactivadas');
+                }
+              }}
+              className={`w-12 h-6 rounded-full transition-colors relative ${notifications ? 'bg-primary' : 'bg-neutral-200 dark:bg-neutral-700'}`}
+            >
+              <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${notifications ? 'left-7' : 'left-1'}`} />
+            </button>
+          </div>
         </section>
 
         {/* App Installation */}

@@ -194,12 +194,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
         
         // Notify Admin of new orders
         if (user.role === 'admin') {
+          const now = Date.now();
+          const thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
+          
+          // Auto-delete old cancelled orders
+          ords.forEach(o => {
+            if (o.status === 'cancelled') {
+              const orderTime = new Date(o.date).getTime();
+              if (orderTime < thirtyDaysAgo) {
+                deleteOrder(o.id).catch(console.error);
+              }
+            }
+          });
+
           snapshot.docChanges().forEach((change) => {
             if (change.type === 'added') {
               const newOrder = change.doc.data() as Order;
               // Check if order is recent (created in last 10 seconds) to avoid initial load notifications
               const orderTime = new Date(newOrder.date).getTime();
-              const now = Date.now();
               if (newOrder.status === 'pending' && (now - orderTime < 10000)) {
                   // Removed toast for new order as requested
                 }
@@ -554,19 +566,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       
       const updatedHistory = [newOrder, ...user.history].slice(0, 50);
       
-      // Update user points and history
+      // Update user history
       // Note: We need to fetch the latest user data to ensure we don't overwrite points if they changed elsewhere,
       // but for this app context 'user' should be up to date via the listener.
-      const newPoints = (user.points || 0) + pointsEarned;
 
       await updateDoc(doc(db, 'users', user.id), {
-        history: updatedHistory,
-        points: newPoints
+        history: updatedHistory
       });
 
       // Friendly Notification
       sendNotification('¡Pedido Recibido! 🍫', {
-        body: `¡Hola ${user.name}! Hemos recibido tu pedido. ¡Ganaste ${pointsEarned} ChokiPoints!`,
+        body: `¡Hola ${user.name}! Hemos recibido tu pedido.`,
         icon: '/pwa-192x192.png'
       });
 
@@ -673,7 +683,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const sendNotification = (title: string, options?: NotificationOptions) => {
     if (!('Notification' in window)) return;
-    if (Notification.permission === 'granted') {
+    if (Notification.permission === 'granted' && localStorage.getItem('notificationsEnabled') !== 'false') {
       new Notification(title, options);
     }
   };
@@ -728,6 +738,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
         sendNotification('¡Pedido Entregado! ✨', {
           body: `¡Gracias por tu compra, ${uData.name}! Has ganado ${pointsEarned} ChokiPoints. ¡Disfrútalos!`,
           icon: '/pwa-192x192.png'
+        });
+      } else if (order.status === 'completed' && status !== 'completed') {
+        // If it was completed and now it's not (e.g., cancelled), deduct the points
+        let newPoints = uData.points;
+        let newPointHistory = uData.pointHistory;
+
+        if (!order.isRedemption) {
+          const pointsEarned = order.pointsEarned;
+          newPoints = Math.max(0, newPoints - pointsEarned);
+          const newTx: ChokiPointTransaction = {
+            id: `tx-${Date.now()}`,
+            amount: -pointsEarned,
+            type: 'penalty',
+            description: `Ajuste por cambio de estado del pedido #${orderId.slice(-6)}`,
+            date: new Date().toISOString()
+          };
+          newPointHistory = [newTx, ...uData.pointHistory];
+        }
+
+        await updateDoc(userRef, {
+          points: newPoints,
+          pointHistory: newPointHistory,
+          history: updatedHistory
         });
       } else {
         // Just update status for other states

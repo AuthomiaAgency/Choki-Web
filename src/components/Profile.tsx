@@ -6,8 +6,9 @@ import { toast } from 'sonner';
 import { useState } from 'react';
 
 export function Profile() {
-  const { user, orders, theme, toggleTheme, logout, setActiveTab, getTotalRevenue, advancedConfig, addCustomLanding, deleteCustomLanding } = useApp();
+  const { user, orders, theme, toggleTheme, logout, setActiveTab, getTotalRevenue, advancedConfig, addCustomLanding, deleteCustomLanding, deleteOrder } = useApp();
   const [isCreatingLanding, setIsCreatingLanding] = useState(false);
+  const [showCancelled, setShowCancelled] = useState(false);
   const [newLanding, setNewLanding] = useState({ name: '', welcomeMessage: '', buttonText: '', slug: '' });
 
   if (!user) return null;
@@ -31,7 +32,12 @@ export function Profile() {
     }
     try {
       const generatedSlug = newLanding.name.toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).substring(2, 7);
-      await addCustomLanding({ ...newLanding, slug: generatedSlug });
+      await addCustomLanding({ 
+        name: newLanding.name, 
+        slug: generatedSlug,
+        welcomeMessage: `¡Hola! Te invito a probar las mejores chocotejas. Instala la app para ver el menú.`,
+        buttonText: 'Instalar App Ahora'
+      });
       setNewLanding({ name: '', welcomeMessage: '', buttonText: '', slug: '' });
       setIsCreatingLanding(false);
       toast.success('Landing creada con éxito');
@@ -65,7 +71,7 @@ export function Profile() {
         </div>
         <h1 className="text-2xl sm:text-4xl font-display font-bold text-neutral-900 dark:text-white mb-1">{user.name}</h1>
         <p className="text-neutral-500 dark:text-neutral-400 text-sm sm:text-base font-medium">
-          {isAdmin ? 'Director de Imperio Choki 👑' : 'Miembro Choki ✨'}
+          {isAdmin ? 'Director de Imperio Choki 👑' : 'Amante de las Chocotejas ✨'}
         </p>
       </div>
 
@@ -144,13 +150,53 @@ export function Profile() {
                     {orders.filter(o => o.status === 'completed').length}
                   </p>
                 </div>
-                <div className="bg-white/5 p-3 rounded-2xl border border-white/5">
+                <button 
+                  onClick={() => setShowCancelled(!showCancelled)}
+                  className="bg-white/5 p-3 rounded-2xl border border-white/5 text-left hover:bg-white/10 transition-colors"
+                >
                   <p className="text-[8px] uppercase tracking-widest opacity-60 mb-1">Cancelados</p>
                   <p className="text-xl font-display font-bold text-red-400">
                     {orders.filter(o => o.status === 'cancelled').length}
                   </p>
-                </div>
+                </button>
               </div>
+
+              <AnimatePresence>
+                {showCancelled && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="bg-white/5 rounded-2xl border border-white/5 p-4 space-y-3">
+                      <h3 className="text-xs font-bold text-white uppercase tracking-widest mb-2">Pedidos Cancelados</h3>
+                      {orders.filter(o => o.status === 'cancelled').length === 0 ? (
+                        <p className="text-xs text-neutral-500 italic">No hay pedidos cancelados.</p>
+                      ) : (
+                        orders.filter(o => o.status === 'cancelled').map(order => (
+                          <div key={order.id} className="flex items-center justify-between text-xs border-b border-white/5 pb-2 last:border-0 last:pb-0">
+                            <div>
+                              <p className="text-white font-medium">{order.userName}</p>
+                              <p className="text-neutral-500 text-[10px]">{new Date(order.date).toLocaleDateString()}</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="text-red-400 font-bold">S/ {order.total.toFixed(2)}</span>
+                              <button 
+                                onClick={() => deleteOrder(order.id)}
+                                className="text-neutral-500 hover:text-red-500 transition-colors"
+                                title="Eliminar definitivamente"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               <button 
                 onClick={() => setActiveTab('admin-stats')}
@@ -207,7 +253,18 @@ export function Profile() {
                         <div className="flex items-center gap-2 shrink-0">
                           <button 
                             onClick={() => {
-                              const url = `${window.location.origin}?landing=${landing.slug}&install=true`;
+                              const url = `${window.location.origin}?landing=${landing.slug}`;
+                              window.open(url, '_blank');
+                            }}
+                            className="flex items-center gap-2 px-3 py-2 bg-white/10 text-white hover:bg-white/20 rounded-xl font-bold text-xs transition-colors"
+                            title="Abrir Enlace"
+                          >
+                            <ExternalLink size={14} />
+                            Abrir
+                          </button>
+                          <button 
+                            onClick={() => {
+                              const url = `${window.location.origin}?landing=${landing.slug}`;
                               navigator.clipboard.writeText(url);
                               toast.success('Enlace de descarga directa copiado');
                             }}
@@ -262,28 +319,6 @@ export function Profile() {
                                 placeholder="Ej: Familia Perez, Amigos del Trabajo..." 
                                 value={newLanding.name}
                                 onChange={e => setNewLanding({...newLanding, name: e.target.value})}
-                                className="w-full bg-neutral-950 border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all placeholder:text-neutral-600"
-                              />
-                            </div>
-                            
-                            <div>
-                              <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1.5 block">Mensaje de Bienvenida (Opcional)</label>
-                              <input 
-                                type="text" 
-                                placeholder="Ej: ¡Bienvenidos a la experiencia más dulce!" 
-                                value={newLanding.welcomeMessage}
-                                onChange={e => setNewLanding({...newLanding, welcomeMessage: e.target.value})}
-                                className="w-full bg-neutral-950 border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all placeholder:text-neutral-600"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="text-[10px] font-bold uppercase text-neutral-500 mb-1.5 block">Texto del Botón (Opcional)</label>
-                              <input 
-                                type="text" 
-                                placeholder="Ej: Instalar App Ahora" 
-                                value={newLanding.buttonText}
-                                onChange={e => setNewLanding({...newLanding, buttonText: e.target.value})}
                                 className="w-full bg-neutral-950 border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all placeholder:text-neutral-600"
                               />
                             </div>
