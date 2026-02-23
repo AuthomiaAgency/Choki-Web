@@ -26,10 +26,13 @@ function AppContent() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  
+  // Initialize state from URL to prevent flash
+  const [showInvitation, setShowInvitation] = useState(() => new URLSearchParams(window.location.search).has('invite'));
+  const [invitationSlug, setInvitationSlug] = useState(() => new URLSearchParams(window.location.search).get('invite'));
+  
   const [showLanding, setShowLanding] = useState(false);
-  const [showInvitation, setShowInvitation] = useState(false);
   const [landingConfig, setLandingConfig] = useState<any>(null);
-  const [invitationSlug, setInvitationSlug] = useState<string | null>(null);
 
   // Redirect admin to orders if on home
   useState(() => {
@@ -41,14 +44,10 @@ function AppContent() {
   useState(() => {
     const params = new URLSearchParams(window.location.search);
     const landingSlug = params.get('landing');
-    const inviteSlug = params.get('invite');
     const isInstall = params.get('install');
 
-    if (inviteSlug) {
-      setInvitationSlug(inviteSlug);
-      setShowInvitation(true);
-      return;
-    }
+    // Invitation logic is handled in initial state, but we keep this for updates if needed
+    // or just remove the invite check here to avoid redundancy
 
     if (landingSlug && advancedConfig?.landings) {
       const config = advancedConfig.landings.find(l => l.slug === landingSlug);

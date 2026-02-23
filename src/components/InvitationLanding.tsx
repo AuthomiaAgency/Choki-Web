@@ -18,6 +18,21 @@ export function InvitationLanding({ slug, onAccept }: InvitationLandingProps) {
   const message = config?.welcomeMessage || 'Te ha enviado una invitación especial para probar Choki.';
   const buttonText = config?.buttonText || 'Aceptar Invitación';
 
+  const handleInstall = async () => {
+    // Try to trigger PWA install
+    const promptEvent = (window as any).deferredPrompt;
+    if (promptEvent) {
+      promptEvent.prompt();
+      const { outcome } = await promptEvent.userChoice;
+      if (outcome === 'accepted') {
+        (window as any).deferredPrompt = null;
+      }
+    } else {
+      // Fallback or just simulate
+      alert('Para instalar: \niOS: Compartir -> Agregar a Inicio\nAndroid: Menú -> Instalar Aplicación');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#0F0F0F] text-white flex flex-col items-center justify-center relative overflow-hidden font-sans selection:bg-orange-500/30">
       
@@ -103,7 +118,7 @@ export function InvitationLanding({ slug, onAccept }: InvitationLandingProps) {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={onAccept}
+              onClick={handleInstall}
               className="group relative w-full py-5 bg-white text-black font-bold text-lg rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(255,255,255,0.3)] transition-all hover:shadow-[0_0_60px_rgba(255,255,255,0.5)]"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-orange-200 via-white to-orange-200 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />

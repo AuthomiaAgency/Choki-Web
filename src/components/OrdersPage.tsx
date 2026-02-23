@@ -147,7 +147,7 @@ export function OrdersPage() {
                         )}
                         {order.status === 'cancelled' && order.cancelledBy === 'admin' && (
                           <p className="text-[10px] text-red-600 dark:text-red-400 font-medium mt-0.5">
-                            Disculpa, se acabó el stock de algunos productos.
+                            Perdón {user?.name.split(' ')[0]}, se nos acabó el stock de algunos productos.
                           </p>
                         )}
                       </div>
