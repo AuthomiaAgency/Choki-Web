@@ -730,23 +730,33 @@ export function AdminPanel() {
                   </p>
                   <h3 className="text-lg font-display font-bold">{order.userName}</h3>
                 </div>
-                <div className="text-right">
-                  <p className="text-xl font-display font-bold text-primary">
-                    {order.isRedemption ? `${order.pointsCost} pts` : formatCurrency(order.total)}
-                  </p>
-                  {order.hasPromo && (
-                    <div className="flex flex-col items-end mt-1">
-                      <span className="text-[9px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold uppercase flex items-center gap-1">
-                        <Tag size={8} /> {order.appliedPromoName}
-                      </span>
-                      {order.items.reduce((s, i) => s + i.price * i.quantity, 0) > order.total && (
-                        <span className="text-[9px] text-emerald-400 font-bold mt-0.5">
-                          -{formatCurrency(order.items.reduce((s, i) => s + i.price * i.quantity, 0) - order.total)}
+                  <div className="text-right">
+                    {order.hasPromo && !order.isRedemption ? (
+                      <div className="flex flex-col items-end">
+                        <span className="text-xs text-neutral-500 line-through decoration-red-500/50 decoration-2">
+                          {formatCurrency(order.items.reduce((s, i) => s + i.price * i.quantity, 0))}
                         </span>
-                      )}
-                    </div>
-                  )}
-                </div>
+                        <p className="text-xl font-display font-bold text-primary">
+                          {formatCurrency(order.total)}
+                        </p>
+                        <div className="flex items-center gap-1 mt-1 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                          <Tag size={10} className="text-emerald-500" />
+                          <span className="text-[10px] font-bold text-emerald-500 uppercase">
+                            {order.appliedPromoName}
+                          </span>
+                          {order.items.reduce((s, i) => s + i.price * i.quantity, 0) > order.total && (
+                            <span className="text-[10px] font-bold text-emerald-500 ml-1">
+                              (-{formatCurrency(order.items.reduce((s, i) => s + i.price * i.quantity, 0) - order.total)})
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xl font-display font-bold text-primary">
+                        {order.isRedemption ? `${order.pointsCost} pts` : formatCurrency(order.total)}
+                      </p>
+                    )}
+                  </div>
               </div>
 
               <div className="space-y-1 mb-6">

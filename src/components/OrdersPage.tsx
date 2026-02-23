@@ -123,11 +123,15 @@ export function OrdersPage() {
                     </div>
 
                     {/* Status Badge */}
-                    <div className={`flex items-center gap-2 mb-4 p-3 rounded-xl ${status.bg} ${status.border} border`}>
+                    <div className={`flex items-center gap-2 mb-4 p-3 rounded-xl ${
+                      order.status === 'cancelled' && order.cancelledBy === 'admin' 
+                        ? 'bg-red-500/10 border-red-500/20' 
+                        : `${status.bg} ${status.border}`
+                    } border`}>
                       <StatusIcon className={status.color} size={18} />
                       <div className="flex-1">
                         <p className={`text-[10px] font-bold uppercase tracking-widest ${status.color}`}>
-                          {status.text}
+                          {order.status === 'cancelled' && order.cancelledBy === 'admin' ? 'CANCELADO POR STOCK' : status.text}
                         </p>
                         {order.status === 'completed' && (
                           <div className="mt-1 flex items-center gap-1.5">
@@ -146,7 +150,7 @@ export function OrdersPage() {
                           </p>
                         )}
                         {order.status === 'cancelled' && order.cancelledBy === 'admin' && (
-                          <p className="text-[10px] text-red-600 dark:text-red-400 font-medium mt-0.5">
+                          <p className="text-[10px] text-red-600 dark:text-red-400 font-medium mt-0.5 leading-relaxed">
                             Perdón {user?.name.split(' ')[0]}, se nos acabó el stock de algunos productos.
                           </p>
                         )}

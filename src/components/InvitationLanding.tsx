@@ -102,11 +102,11 @@ export function InvitationLanding({ slug, onAccept }: InvitationLandingProps) {
 
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight">
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-neutral-400">
-              {name}
+              Bienvenido {name}
             </span>
             <br />
             <span className="text-2xl sm:text-3xl font-normal text-neutral-400">
-              te ha invitado
+              a la experiencia Choki
             </span>
           </h1>
 
@@ -123,7 +123,7 @@ export function InvitationLanding({ slug, onAccept }: InvitationLandingProps) {
             >
               <div className="absolute inset-0 bg-gradient-to-r from-orange-200 via-white to-orange-200 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               <span className="relative flex items-center justify-center gap-3">
-                {buttonText}
+                Descargar
                 <ArrowRight className="group-hover:translate-x-1 transition-transform" />
               </span>
             </motion.button>
