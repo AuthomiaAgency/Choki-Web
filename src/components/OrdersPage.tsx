@@ -145,6 +145,11 @@ export function OrdersPage() {
                             Tu pedido está listo para entrega/recogida.
                           </p>
                         )}
+                        {order.status === 'cancelled' && order.cancelledBy === 'admin' && (
+                          <p className="text-[10px] text-red-600 dark:text-red-400 font-medium mt-0.5">
+                            Disculpa, se acabó el stock de algunos productos.
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -189,6 +194,9 @@ export function OrdersPage() {
                                )}
                                {order.pointsEarned - Math.floor(order.total * 10) > 0 && (
                                  <span className="text-xs bg-emerald-500/20 px-2 py-0.5 rounded-md mt-1">+{order.pointsEarned - Math.floor(order.total * 10)} Pts</span>
+                               )}
+                               {order.items.reduce((s, i) => s + i.price * i.quantity, 0) === order.total && order.pointsEarned - Math.floor(order.total * 10) === 0 && (
+                                 <span className="text-sm">Aplicado</span>
                                )}
                             </span>
                          </div>

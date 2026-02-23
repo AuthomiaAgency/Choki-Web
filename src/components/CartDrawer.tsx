@@ -17,6 +17,9 @@ export function CartDrawer() {
   const promoName = appliedPromoData ? appliedPromoData.promo.name : '';
   const total = Math.max(0, subtotal - discount);
 
+  const isPromoPrice = appliedPromoData?.promo.reward.type === 'promo_price' || (appliedPromoData?.promo.reward.type === 'multi_reward' && appliedPromoData?.promo.reward.promoPrice);
+  const promoPriceTotal = isPromoPrice ? (appliedPromoData!.promo.reward.promoPrice || appliedPromoData!.promo.reward.value || 0) * appliedPromoData!.multiplier : 0;
+
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleCheckout = async () => {
@@ -143,13 +146,20 @@ export function CartDrawer() {
                         </div>
                       </div>
                       <div className="relative z-10 text-right">
-                        {(discount > 0 || extraPoints > 0) && (
+                        {isPromoPrice ? (
+                          <div className="flex flex-col items-end">
+                            <span className="text-[10px] text-neutral-400 uppercase font-bold tracking-wider">Precio Promo</span>
+                            <span className="text-2xl font-display font-bold text-emerald-400 drop-shadow-sm">{formatCurrency(promoPriceTotal)}</span>
+                            {discount > 0 && <span className="text-[10px] text-emerald-500 font-bold mt-1">Ahorras {formatCurrency(discount)}</span>}
+                            {extraPoints > 0 && <span className="bg-primary text-neutral-950 px-3 py-1 rounded-lg font-bold text-xs shadow-lg shadow-primary/20 mt-1">+{extraPoints} Pts</span>}
+                          </div>
+                        ) : (discount > 0 || extraPoints > 0) ? (
                           <div className="flex flex-col items-end">
                             {discount > 0 && <span className="text-[10px] text-neutral-400 uppercase font-bold tracking-wider">Ahorras</span>}
                             {discount > 0 && <span className="text-2xl font-display font-bold text-emerald-400 drop-shadow-sm">-{formatCurrency(discount)}</span>}
                             {extraPoints > 0 && <span className="bg-primary text-neutral-950 px-3 py-1 rounded-lg font-bold text-xs shadow-lg shadow-primary/20 mt-1">+{extraPoints} Pts</span>}
                           </div>
-                        )}
+                        ) : null}
                       </div>
                     </motion.div>
                   )}
@@ -176,9 +186,16 @@ export function CartDrawer() {
                         )}
                       </span>
                       <span>
-                        {discount > 0 && `-${formatCurrency(discount)}`}
-                        {discount > 0 && extraPoints > 0 && ' / '}
-                        {extraPoints > 0 && `+${extraPoints} Pts`}
+                        {isPromoPrice ? (
+                          <span className="text-emerald-400 font-bold">{formatCurrency(promoPriceTotal)}</span>
+                        ) : (
+                          <>
+                            {discount > 0 && `-${formatCurrency(discount)}`}
+                            {discount > 0 && extraPoints > 0 && ' / '}
+                            {extraPoints > 0 && `+${extraPoints} Pts`}
+                            {discount === 0 && extraPoints === 0 && 'Aplicado'}
+                          </>
+                        )}
                       </span>
                     </div>
                   )}

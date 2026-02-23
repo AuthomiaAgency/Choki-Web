@@ -472,6 +472,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
               if (promoTotal < originalPriceTotal && promoTotal > 0) {
                  savings = originalPriceTotal - promoTotal;
               }
+           } else if (condition.type === 'min_quantity') {
+              let countNeeded = condition.threshold * multiplier;
+              let originalPriceTotal = 0;
+              const sortedCart = [...cart].sort((a, b) => a.price - b.price);
+              for (const item of sortedCart) {
+                 const qtyToTake = Math.min(item.quantity, countNeeded);
+                 originalPriceTotal += item.price * qtyToTake;
+                 countNeeded -= qtyToTake;
+                 if (countNeeded <= 0) break;
+              }
+              const promoSetPrice = (reward.promoPrice !== undefined && reward.promoPrice !== 0) ? reward.promoPrice : (reward.value || 0);
+              const promoTotal = promoSetPrice * multiplier;
+              if (promoTotal < originalPriceTotal && promoTotal > 0) {
+                 savings = originalPriceTotal - promoTotal;
+              }
+           } else {
+              // Fallback for min_total or other conditions
+              const promoSetPrice = (reward.promoPrice !== undefined && reward.promoPrice !== 0) ? reward.promoPrice : (reward.value || 0);
+              const originalSetPrice = getEligibleValue();
+              const promoTotal = promoSetPrice * multiplier;
+              if (promoTotal < originalSetPrice && promoTotal > 0) {
+                 savings = originalSetPrice - promoTotal;
+              }
            }
         } else if (reward.type === 'bonus_points') {
            points = (reward.value || 0) * multiplier;
@@ -520,6 +543,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
                  if (promoTotal < originalPriceTotal && promoTotal > 0) {
                    priceSavings = originalPriceTotal - promoTotal;
                  }
+              } else {
+                 // Fallback for min_total or other conditions
+                 const originalSetPrice = getEligibleValue();
+                 const promoTotal = promoSetPrice * multiplier;
+                 if (promoTotal < originalSetPrice && promoTotal > 0) {
+                    priceSavings = originalSetPrice - promoTotal;
+                 }
               }
               
               if (priceSavings > 0) {
@@ -545,7 +575,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const placeOrder = async () => {
-    if (cart.length === 0 || !user || !db) return;
+    if (cart.length === 0 || !user || !db) return false;
 
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const appliedPromoData = getAppliedPromo();
@@ -575,8 +605,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       date: new Date().toISOString(),
       hasPromo: !!appliedPromoData,
       appliedPromoName,
-      promoMultiplier: appliedPromoData?.multiplier,
-      pointsEarned
+      pointsEarned,
+      ...(appliedPromoData?.multiplier ? { promoMultiplier: appliedPromoData.multiplier } : {})
     };
 
     try {
@@ -601,11 +631,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       setCart([]);
       setIsCartOpen(false);
-      setActiveTab('orders');
+      // setActiveTab('orders'); // Moved to component
       toast.success('¡Pedido realizado con éxito!');
+      return true;
     } catch (error) {
       console.error("Error placing order:", error);
       toast.error('Error al realizar el pedido');
+      return false;
     }
   };
 

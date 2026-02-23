@@ -171,31 +171,6 @@ export function SettingsPage() {
           </button>
         </section>
 
-        {/* Notifications */}
-        <section className="space-y-4">
-          <h2 className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.2em]">Notificaciones</h2>
-          <button 
-            onClick={requestNotificationPermission}
-            className="w-full flex items-center justify-between p-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-white/5 rounded-2xl active:scale-[0.98] transition-all"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-900 dark:text-white">
-                <Bell size={20} />
-              </div>
-              <div className="text-left">
-                <h3 className="font-display font-bold text-neutral-900 dark:text-white">Activar Notificaciones</h3>
-                <p className="text-xs text-neutral-500">Recibe alertas de tus pedidos</p>
-              </div>
-            </div>
-            <div className={`w-12 h-7 rounded-full p-1 transition-colors ${Notification.permission === 'granted' ? 'bg-primary' : 'bg-neutral-200 dark:bg-neutral-800'}`}>
-              <motion.div 
-                className="w-5 h-5 bg-white rounded-full shadow-sm"
-                animate={{ x: Notification.permission === 'granted' ? 20 : 0 }}
-              />
-            </div>
-          </button>
-        </section>
-
         {/* Name Update */}
         <section className="space-y-4">
           <h2 className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.2em]">Nombre de usuario</h2>

@@ -5,6 +5,7 @@ import { CartDrawer } from './components/CartDrawer';
 import { Navbar } from './components/Navbar';
 import { AdminPanel } from './components/AdminPanel';
 import { LandingPage } from './components/LandingPage';
+import { InvitationLanding } from './components/InvitationLanding';
 import { Profile } from './components/Profile';
 import { Auth } from './components/Auth';
 import { FloatingCartBar } from './components/FloatingCartBar';
@@ -26,7 +27,9 @@ function AppContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [showLanding, setShowLanding] = useState(false);
+  const [showInvitation, setShowInvitation] = useState(false);
   const [landingConfig, setLandingConfig] = useState<any>(null);
+  const [invitationSlug, setInvitationSlug] = useState<string | null>(null);
 
   // Redirect admin to orders if on home
   useState(() => {
@@ -38,7 +41,14 @@ function AppContent() {
   useState(() => {
     const params = new URLSearchParams(window.location.search);
     const landingSlug = params.get('landing');
+    const inviteSlug = params.get('invite');
     const isInstall = params.get('install');
+
+    if (inviteSlug) {
+      setInvitationSlug(inviteSlug);
+      setShowInvitation(true);
+      return;
+    }
 
     if (landingSlug && advancedConfig?.landings) {
       const config = advancedConfig.landings.find(l => l.slug === landingSlug);
@@ -82,11 +92,30 @@ function AppContent() {
     window.history.replaceState({}, '', window.location.pathname);
   };
 
+  const handleInvitationAccept = () => {
+    setShowInvitation(false);
+    window.history.replaceState({}, '', window.location.pathname);
+  };
+
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
     p.category?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (showInvitation) {
+    return (
+      <div className="min-h-screen bg-neutral-950">
+        <AnimatePresence>
+          <InvitationLanding 
+            slug={invitationSlug || undefined} 
+            onAccept={handleInvitationAccept} 
+          />
+        </AnimatePresence>
+        <Toaster position="top-center" richColors />
+      </div>
+    );
+  }
 
   if (showLanding && landingConfig) {
     return (

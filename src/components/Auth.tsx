@@ -115,9 +115,28 @@ export function Auth() {
         className="w-full max-w-md"
       >
         <div className="text-center mb-10">
-          <div className="w-20 h-20 bg-primary/20 rounded-3xl flex items-center justify-center text-primary mx-auto mb-6 rotate-12">
-            <span className="font-display font-bold text-4xl">C</span>
-          </div>
+          <motion.div 
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="w-24 h-24 mx-auto mb-6 relative"
+          >
+            <div className="absolute inset-0 bg-primary/20 rounded-3xl rotate-12 blur-sm" />
+            <motion.img 
+              src="https://copilot.microsoft.com/th/id/BCO.0422c8a8-09b8-4328-bec7-f147697257f1.png" 
+              alt="Choki Logo" 
+              className="w-full h-full object-contain relative z-10 drop-shadow-xl"
+              animate={{ 
+                y: [0, -5, 0],
+                rotate: [0, 5, -5, 0]
+              }}
+              transition={{ 
+                duration: 4, 
+                repeat: Infinity, 
+                ease: "easeInOut" 
+              }}
+            />
+          </motion.div>
           <h1 className="text-3xl font-display font-bold text-neutral-900 dark:text-white mb-2">
             {isAuthMode === 'login' ? '¡Hola de nuevo!' : 'Crea tu cuenta'}
           </h1>

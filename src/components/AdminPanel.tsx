@@ -734,7 +734,18 @@ export function AdminPanel() {
                   <p className="text-xl font-display font-bold text-primary">
                     {order.isRedemption ? `${order.pointsCost} pts` : formatCurrency(order.total)}
                   </p>
-                  {order.hasPromo && <span className="text-[9px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold uppercase">Promo</span>}
+                  {order.hasPromo && (
+                    <div className="flex flex-col items-end mt-1">
+                      <span className="text-[9px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold uppercase flex items-center gap-1">
+                        <Tag size={8} /> {order.appliedPromoName}
+                      </span>
+                      {order.items.reduce((s, i) => s + i.price * i.quantity, 0) > order.total && (
+                        <span className="text-[9px] text-emerald-400 font-bold mt-0.5">
+                          -{formatCurrency(order.items.reduce((s, i) => s + i.price * i.quantity, 0) - order.total)}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -752,6 +763,32 @@ export function AdminPanel() {
                     </div>
                   );
                 })}
+                {order.hasPromo && !order.isRedemption && (
+                  <div className="mt-3 pt-3 border-t border-white/5 flex justify-between items-center bg-primary/5 p-2 rounded-lg">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-primary font-bold flex items-center gap-1">
+                        <Tag size={12} />
+                        {order.appliedPromoName}
+                        {order.promoMultiplier && order.promoMultiplier > 1 && (
+                          <span className="bg-primary/20 px-1 rounded-sm">x{order.promoMultiplier}</span>
+                        )}
+                      </span>
+                      <span className="text-[9px] text-neutral-500">Promo aplicada</span>
+                    </div>
+                    <div className="text-right flex flex-col items-end">
+                      {order.items.reduce((s, i) => s + i.price * i.quantity, 0) > order.total && (
+                        <span className="text-xs font-bold text-emerald-400">
+                          -{formatCurrency(order.items.reduce((s, i) => s + i.price * i.quantity, 0) - order.total)}
+                        </span>
+                      )}
+                      {order.pointsEarned - Math.floor(order.total * 10) > 0 && (
+                        <span className="text-[10px] font-bold text-emerald-500">
+                          +{order.pointsEarned - Math.floor(order.total * 10)} Pts
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-2 mt-4">

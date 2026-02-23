@@ -246,14 +246,14 @@ export function Profile() {
                           <div className="flex items-center gap-2 mt-1 bg-black/20 p-2 rounded-lg border border-white/5 w-fit max-w-full">
                             <ExternalLink size={12} className="text-primary shrink-0" />
                             <p className="text-[10px] text-neutral-400 font-mono truncate">
-                              {window.location.origin}?landing={landing.slug}
+                              {window.location.origin}?invite={landing.slug}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <button 
                             onClick={() => {
-                              const url = `${window.location.origin}?landing=${landing.slug}`;
+                              const url = `${window.location.origin}?invite=${landing.slug}`;
                               window.open(url, '_blank');
                             }}
                             className="flex items-center gap-2 px-3 py-2 bg-white/10 text-white hover:bg-white/20 rounded-xl font-bold text-xs transition-colors"
@@ -264,12 +264,12 @@ export function Profile() {
                           </button>
                           <button 
                             onClick={() => {
-                              const url = `${window.location.origin}?landing=${landing.slug}`;
+                              const url = `${window.location.origin}?invite=${landing.slug}`;
                               navigator.clipboard.writeText(url);
-                              toast.success('Enlace de descarga directa copiado');
+                              toast.success('Enlace de invitación copiado');
                             }}
                             className="flex items-center gap-2 px-3 py-2 bg-primary/10 text-primary hover:bg-primary/20 rounded-xl font-bold text-xs transition-colors"
-                            title="Copiar Enlace de Descarga"
+                            title="Copiar Enlace de Invitación"
                           >
                             <Copy size={14} />
                             Copiar URL

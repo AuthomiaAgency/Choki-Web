@@ -12,9 +12,14 @@ export function CheckoutPage() {
   const discount = appliedPromoData ? appliedPromoData.savings : 0;
   const total = Math.max(0, totalPrice - discount);
 
-  const handleConfirm = () => {
-    placeOrder();
-    setActiveTab('orders');
+  const isPromoPrice = appliedPromoData?.promo.reward.type === 'promo_price' || (appliedPromoData?.promo.reward.type === 'multi_reward' && appliedPromoData?.promo.reward.promoPrice);
+  const promoPriceTotal = isPromoPrice ? (appliedPromoData!.promo.reward.promoPrice || appliedPromoData!.promo.reward.value || 0) * appliedPromoData!.multiplier : 0;
+
+  const handleConfirm = async () => {
+    const success = await placeOrder();
+    if (success) {
+      setActiveTab('orders');
+    }
   };
 
   return (
@@ -62,9 +67,16 @@ export function CheckoutPage() {
                     )}
                   </span>
                   <span>
-                    {discount > 0 && `-${formatCurrency(discount)}`}
-                    {discount > 0 && appliedPromoData.points > 0 && ' / '}
-                    {appliedPromoData.points > 0 && `+${appliedPromoData.points} Puntos`}
+                    {isPromoPrice ? (
+                      <span className="text-emerald-400 font-bold">{formatCurrency(promoPriceTotal)}</span>
+                    ) : (
+                      <>
+                        {discount > 0 && `-${formatCurrency(discount)}`}
+                        {discount > 0 && appliedPromoData.points > 0 && ' / '}
+                        {appliedPromoData.points > 0 && `+${appliedPromoData.points} Puntos`}
+                        {discount === 0 && appliedPromoData.points === 0 && 'Aplicado'}
+                      </>
+                    )}
                   </span>
                 </div>
               )}
