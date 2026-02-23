@@ -27,9 +27,6 @@ export function InvitationLanding({ slug, onAccept }: InvitationLandingProps) {
       if (outcome === 'accepted') {
         (window as any).deferredPrompt = null;
       }
-    } else {
-      // Fallback or just simulate
-      alert('Para instalar: \niOS: Compartir -> Agregar a Inicio\nAndroid: Menú -> Instalar Aplicación');
     }
   };
 
