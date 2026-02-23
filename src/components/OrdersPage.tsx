@@ -130,7 +130,7 @@ export function OrdersPage() {
                       <StatusIcon className={status.color} size={18} />
                       <div className="flex-1">
                         <p className={`text-[10px] font-bold uppercase tracking-widest ${status.color}`}>
-                          {order.status === 'cancelled' && order.cancelledBy === 'admin' ? 'CANCELADO POR STOCK' : status.text}
+                          {order.status === 'cancelled' && order.cancelledBy === 'admin' ? 'DENEGADO POR EL CHOCOTEJERO' : status.text}
                         </p>
                         {order.status === 'completed' && (
                           <div className="mt-1 flex items-center gap-1.5">
