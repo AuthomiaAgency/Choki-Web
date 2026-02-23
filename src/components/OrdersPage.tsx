@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context';
-import { ArrowLeft, Package, Clock, CheckCircle2, XCircle, AlertCircle, Trash2, PartyPopper } from 'lucide-react';
+import { ArrowLeft, Package, Clock, CheckCircle2, XCircle, AlertCircle, Trash2, PartyPopper, Tag } from 'lucide-react';
 import { formatCurrency } from '../utils';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -168,13 +168,25 @@ export function OrdersPage() {
                                 <Tag size={16} />
                               </div>
                               <div>
-                                <p className="text-xs font-bold text-primary">{order.appliedPromoName}</p>
+                                <p className="text-xs font-bold text-primary flex items-center gap-1.5">
+                                  {order.appliedPromoName}
+                                  {order.promoMultiplier && order.promoMultiplier > 1 ? (
+                                    <span className="text-[9px] bg-primary/20 px-1.5 py-0.5 rounded-md">
+                                      x{order.promoMultiplier}
+                                    </span>
+                                  ) : order.items.reduce((s, i) => s + i.price * i.quantity, 0) - order.total > 0 ? (
+                                    <span className="text-[9px] bg-primary/20 px-1.5 py-0.5 rounded-md">
+                                      Aplicado
+                                    </span>
+                                  ) : null}
+                                </p>
                                 <p className="text-[9px] text-neutral-500 font-medium">Promo aplicada</p>
                               </div>
                             </div>
                             <span className="relative z-10 text-emerald-500 font-display font-bold text-lg">
-                               {/* Calculate discount amount for display */}
-                               -{formatCurrency(order.items.reduce((s, i) => s + i.price * i.quantity, 0) - order.total)}
+                               {order.items.reduce((s, i) => s + i.price * i.quantity, 0) > order.total 
+                                 ? `-${formatCurrency(order.items.reduce((s, i) => s + i.price * i.quantity, 0) - order.total)}`
+                                 : `+${order.pointsEarned - Math.floor(order.total * 10)} Pts`}
                             </span>
                          </div>
                       )}

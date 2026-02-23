@@ -168,10 +168,17 @@ export function CartDrawer() {
                     <span>Subtotal</span>
                     <span>{formatCurrency(subtotal)}</span>
                   </div>
-                  {discount > 0 && (
+                  {appliedPromoData && (
                     <div className="flex justify-between items-center text-primary text-sm font-bold">
-                      <span>Descuento Promo</span>
-                      <span>-{formatCurrency(discount)}</span>
+                      <span className="flex items-center gap-1.5">
+                        {appliedPromoData.promo.name}
+                        {appliedPromoData.multiplier > 1 && (
+                          <span className="text-[10px] bg-primary/20 px-1.5 py-0.5 rounded-md">
+                            x{appliedPromoData.multiplier}
+                          </span>
+                        )}
+                      </span>
+                      <span>{discount > 0 ? `-${formatCurrency(discount)}` : `+${extraPoints} Pts`}</span>
                     </div>
                   )}
                   <div className="flex justify-between items-center pt-2 border-t border-white/5">

@@ -40,6 +40,15 @@ function AppContent() {
     const landingSlug = params.get('landing');
     const isInstall = params.get('install');
 
+    if (landingSlug && advancedConfig?.landings) {
+      const config = advancedConfig.landings.find(l => l.slug === landingSlug);
+      if (config) {
+        setLandingConfig(config);
+        setShowLanding(true);
+        return;
+      }
+    }
+
     if (isInstall) {
       setLandingConfig({
         name: 'Choki App',
@@ -47,17 +56,7 @@ function AppContent() {
         buttonText: 'Instalar Ahora'
       });
       setShowLanding(true);
-      // We can't auto-trigger install due to browser security, but the LandingPage 
-      // will be shown with the "Install Now" button prominent.
       return;
-    }
-
-    if (landingSlug && advancedConfig?.landings) {
-      const config = advancedConfig.landings.find(l => l.slug === landingSlug);
-      if (config) {
-        setLandingConfig(config);
-        setShowLanding(true);
-      }
     } else if (advancedConfig?.showLanding) {
       const hasSeenLanding = sessionStorage.getItem('hasSeenLanding');
       if (!hasSeenLanding) {
@@ -88,6 +87,20 @@ function AppContent() {
     p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
     p.category?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (showLanding && landingConfig) {
+    return (
+      <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 font-sans transition-colors duration-300">
+        <AnimatePresence>
+          <LandingPage 
+            config={landingConfig} 
+            onComplete={handleLandingComplete} 
+          />
+        </AnimatePresence>
+        <Toaster position="top-center" richColors />
+      </div>
+    );
+  }
 
   if (!user) {
     return (
@@ -132,14 +145,6 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 font-sans pb-32 transition-colors duration-300">
-      <AnimatePresence>
-        {showLanding && landingConfig && (
-          <LandingPage 
-            config={landingConfig} 
-            onComplete={handleLandingComplete} 
-          />
-        )}
-      </AnimatePresence>
       {/* Top Bar */}
       <header className="sticky top-0 z-30 bg-neutral-50/80 dark:bg-neutral-950/80 backdrop-blur-md px-4 sm:px-6 py-4 flex items-center justify-between border-b border-neutral-200 dark:border-white/5 transition-colors duration-300">
         <div className="flex items-center gap-2 sm:gap-3">

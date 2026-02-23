@@ -26,6 +26,7 @@ export interface Order {
   date: string;
   hasPromo?: boolean;
   appliedPromoName?: string;
+  promoMultiplier?: number;
   pointsEarned: number;
   isRedemption?: boolean;
   pointsCost?: number;

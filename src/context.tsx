@@ -466,17 +466,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
         } else if (reward.type === 'multi_reward') {
            if (reward.discountAmount) savings += (reward.discountAmount * multiplier);
            if (reward.extraPoints) points += (reward.extraPoints * multiplier);
-           
-           if (reward.promoPrice) {
+                      if (reward.promoPrice || reward.value) {
               // If promoPrice exists, it overrides discountAmount for the price part
               // We calculate savings from promoPrice and REPLACE discountAmount savings
               let priceSavings = 0;
+              const promoSetPrice = (reward.promoPrice !== undefined && reward.promoPrice !== 0) ? reward.promoPrice : (reward.value || 0);
               
               if (condition.type === 'product_id') {
                  const item = cart.find(i => i.id === condition.target);
                  if (item) {
                    const originalSetPrice = item.price * condition.threshold;
-                   priceSavings = (originalSetPrice - reward.promoPrice) * multiplier;
+                   priceSavings = (originalSetPrice - promoSetPrice) * multiplier;
                  }
               } else if (condition.type === 'product_list') {
                  let countNeeded = condition.threshold * multiplier;
@@ -488,7 +488,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     countNeeded -= qtyToTake;
                     if (countNeeded <= 0) break;
                  }
-                 priceSavings = originalPriceTotal - ((reward.promoPrice || 0) * multiplier);
+                 priceSavings = originalPriceTotal - (promoSetPrice * multiplier);
               }
               
               if (priceSavings > 0) {
@@ -505,7 +505,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         if (savings > maxSavings || (savings === maxSavings && points > (bestPromo?.points || 0))) {
           maxSavings = savings;
-          bestPromo = { promo, savings, points };
+          bestPromo = { promo, savings, points, multiplier };
         }
       }
     }
@@ -544,6 +544,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       date: new Date().toISOString(),
       hasPromo: !!appliedPromoData,
       appliedPromoName,
+      promoMultiplier: appliedPromoData?.multiplier,
       pointsEarned
     };
 

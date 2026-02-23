@@ -50,10 +50,18 @@ export function CheckoutPage() {
                 <span>Subtotal</span>
                 <span>{formatCurrency(totalPrice)}</span>
               </div>
-              {discount > 0 && (
-                <div className="flex justify-between text-sm text-emerald-500 font-bold">
-                  <span>Descuento {appliedPromoData?.promo.name}</span>
-                  <span>-{formatCurrency(discount)}</span>
+              {appliedPromoData && (
+                <div className="flex justify-between text-sm text-emerald-500 font-bold items-center">
+                  <span className="flex items-center gap-1.5">
+                    <Tag size={16} /> 
+                    {appliedPromoData.promo.name}
+                    {appliedPromoData.multiplier > 1 && (
+                      <span className="text-[10px] bg-emerald-500/20 px-1.5 py-0.5 rounded-md ml-1">
+                        x{appliedPromoData.multiplier}
+                      </span>
+                    )}
+                  </span>
+                  <span>{discount > 0 ? `-${formatCurrency(discount)}` : `+${appliedPromoData.points} Puntos`}</span>
                 </div>
               )}
               <div className="flex justify-between text-xl sm:text-2xl font-display font-bold text-neutral-900 dark:text-white pt-4">
