@@ -127,6 +127,9 @@ export function InvitationLanding({ slug, onAccept }: InvitationLandingProps) {
                 <ArrowRight className="group-hover:translate-x-1 transition-transform" />
               </span>
             </motion.button>
+            <p className="mt-4 text-[10px] text-neutral-400 font-medium tracking-wide">
+              Haz clic en el botón <span className="px-1.5 py-0.5 bg-white/10 text-white rounded-md mx-0.5">Descargar</span> y reinicia la página para que te aparezca la descarga.
+            </p>
           </div>
         </motion.div>
 

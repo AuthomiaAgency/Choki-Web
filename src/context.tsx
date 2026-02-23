@@ -822,6 +822,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
             body: `¡Hola ${uData.name}! Tu pedido ya está preparado. ¡Está delicioso!`,
             icon: '/pwa-192x192.png'
           });
+        } else if (status === 'cancelled') {
+          sendNotification('Pedido Cancelado 😔', {
+            body: `Perdón ${uData.name.split(' ')[0]}, se nos acabó el stock de algunos productos. Prueba más tarde, gracias.`,
+            icon: '/pwa-192x192.png'
+          });
         }
       }
     } catch (e: any) {
