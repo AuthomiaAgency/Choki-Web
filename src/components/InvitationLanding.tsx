@@ -19,21 +19,20 @@ export function InvitationLanding({ slug, onAccept }: InvitationLandingProps) {
   const buttonText = config?.buttonText || 'Aceptar Invitación';
 
   const handleInstall = async () => {
-    // Force download of the dummy APK file
-    const dummyApkContent = "Este es un archivo de instalación web. Para instalar la app real, abre este enlace en Chrome (Android) o Safari (iOS) y selecciona 'Agregar a la pantalla de inicio'.";
-    const blob = new Blob([dummyApkContent], { type: 'application/vnd.android.package-archive' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = url;
-    a.download = 'Choki_App.apk';
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-    
-    // Optional: Call onAccept if we want to let them into the app after downloading
-    // if (onAccept) onAccept();
+    // Try to trigger native PWA install prompt
+    const promptEvent = (window as any).deferredPrompt;
+    if (promptEvent) {
+      promptEvent.prompt();
+      const { outcome } = await promptEvent.userChoice;
+      if (outcome === 'accepted') {
+        (window as any).deferredPrompt = null;
+        if (onAccept) onAccept();
+      }
+    } else {
+      // If the prompt is not available (e.g., iOS or already installed)
+      alert('La instalación automática no está disponible en este navegador o ya tienes la app instalada. En iOS (Safari), presiona "Compartir" y luego "Agregar a inicio".');
+      if (onAccept) onAccept();
+    }
   };
 
   return (
@@ -126,13 +125,10 @@ export function InvitationLanding({ slug, onAccept }: InvitationLandingProps) {
             >
               <div className="absolute inset-0 bg-gradient-to-r from-orange-200 via-white to-orange-200 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               <span className="relative flex items-center justify-center gap-3">
-                Descargar
+                Instalar App
                 <ArrowRight className="group-hover:translate-x-1 transition-transform" />
               </span>
             </motion.button>
-            <p className="mt-4 text-[10px] text-neutral-400 font-medium tracking-wide">
-              Haz clic en el botón <span className="px-1.5 py-0.5 bg-white/10 text-white rounded-md mx-0.5">Descargar</span> y reinicia la página para que te aparezca la descarga.
-            </p>
           </div>
         </motion.div>
 

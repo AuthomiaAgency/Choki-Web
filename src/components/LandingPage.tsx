@@ -21,21 +21,20 @@ export function LandingPage({ config, onComplete }: LandingPageProps) {
   };
 
   const handleInstall = async () => {
-    // Force download of the dummy APK file
-    const dummyApkContent = "Este es un archivo de instalación web. Para instalar la app real, abre este enlace en Chrome (Android) o Safari (iOS) y selecciona 'Agregar a la pantalla de inicio'.";
-    const blob = new Blob([dummyApkContent], { type: 'application/vnd.android.package-archive' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = url;
-    a.download = 'Choki_App.apk';
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-    
-    // Optional: Call onComplete if we want to let them into the app after downloading
-    // if (onComplete) onComplete();
+    // Try to trigger native PWA install prompt
+    const promptEvent = (window as any).deferredPrompt;
+    if (promptEvent) {
+      promptEvent.prompt();
+      const { outcome } = await promptEvent.userChoice;
+      if (outcome === 'accepted') {
+        (window as any).deferredPrompt = null;
+        if (onComplete) onComplete();
+      }
+    } else {
+      // If the prompt is not available (e.g., iOS or already installed)
+      alert('La instalación automática no está disponible en este navegador o ya tienes la app instalada. En iOS (Safari), presiona "Compartir" y luego "Agregar a inicio".');
+      if (onComplete) onComplete();
+    }
   };
 
   const floatingIcons = [
