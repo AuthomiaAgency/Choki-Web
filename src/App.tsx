@@ -176,15 +176,18 @@ function AppContent() {
       {/* Top Bar */}
       <header className="sticky top-0 z-30 bg-neutral-50/80 dark:bg-neutral-950/80 backdrop-blur-md px-4 sm:px-6 py-4 flex items-center justify-between border-b border-neutral-200 dark:border-white/5 transition-colors duration-300">
         <div className="flex items-center gap-2 sm:gap-3">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-500/20 rounded-xl sm:rounded-2xl flex items-center justify-center overflow-hidden border border-orange-500/10">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-500/20 rounded-xl sm:rounded-2xl flex items-center justify-center overflow-hidden border border-orange-500/10 shrink-0">
             <img 
               src="https://copilot.microsoft.com/th/id/BCO.0422c8a8-09b8-4328-bec7-f147697257f1.png" 
               alt="Choki Logo" 
               className="w-full h-full object-cover"
             />
           </div>
-          <div>
+          <div className="flex flex-col justify-center">
             <h1 className="text-lg sm:text-xl font-display font-bold text-neutral-900 dark:text-white leading-none">Choki</h1>
+            <p className="text-[8px] sm:text-[9px] text-neutral-500/70 dark:text-neutral-400/60 mt-1 font-medium tracking-wide leading-tight">
+              App creada con <a href="https://www.authomia.cloud/" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors underline decoration-neutral-500/30 dark:decoration-neutral-400/30 underline-offset-2">Authomia Agency</a>
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-1 sm:gap-2">
