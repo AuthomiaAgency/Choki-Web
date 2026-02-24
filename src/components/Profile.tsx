@@ -19,8 +19,16 @@ export function Profile() {
   const canRedeem = user.points >= 150;
   const revenue = getTotalRevenue();
   
+  const getPublicUrl = () => {
+    const origin = window.location.origin;
+    if (origin.includes('ais-dev-')) {
+      return origin.replace('ais-dev-', 'ais-pre-');
+    }
+    return origin;
+  };
+
   const handleShareDirectInstall = () => {
-    const url = `${window.location.origin}?install=true`;
+    const url = `${getPublicUrl()}?install=true`;
     navigator.clipboard.writeText(url);
     toast.success('Enlace de instalación directa copiado');
   };
@@ -47,7 +55,7 @@ export function Profile() {
   };
 
   const handleShareLanding = (slug: string) => {
-    const url = `${window.location.origin}?landing=${slug}`;
+    const url = `${getPublicUrl()}?landing=${slug}`;
     navigator.clipboard.writeText(url);
     toast.success('Enlace de landing copiado');
   };
@@ -246,14 +254,14 @@ export function Profile() {
                           <div className="flex items-center gap-2 mt-1 bg-black/20 p-2 rounded-lg border border-white/5 w-fit max-w-full">
                             <ExternalLink size={12} className="text-primary shrink-0" />
                             <p className="text-[10px] text-neutral-400 font-mono truncate">
-                              {window.location.origin}?invite={landing.slug}
+                              {getPublicUrl()}?invite={landing.slug}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <button 
                             onClick={() => {
-                              const url = `${window.location.origin}?invite=${landing.slug}`;
+                              const url = `${getPublicUrl()}?invite=${landing.slug}`;
                               window.open(url, '_blank');
                             }}
                             className="flex items-center gap-2 px-3 py-2 bg-white/10 text-white hover:bg-white/20 rounded-xl font-bold text-xs transition-colors"
@@ -264,7 +272,7 @@ export function Profile() {
                           </button>
                           <button 
                             onClick={() => {
-                              const url = `${window.location.origin}?invite=${landing.slug}`;
+                              const url = `${getPublicUrl()}?invite=${landing.slug}`;
                               navigator.clipboard.writeText(url);
                               toast.success('Enlace de invitación copiado');
                             }}
