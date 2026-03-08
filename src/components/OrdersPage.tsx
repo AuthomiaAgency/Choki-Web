@@ -5,24 +5,12 @@ import { formatCurrency } from '../utils';
 import { motion, AnimatePresence } from 'motion/react';
 
 export function OrdersPage() {
-  const { user, cancelOrder, hideOrder, setActiveTab } = useApp();
+  const { user, cancelOrder, hideOrder, setActiveTab, dismissSupportMessage } = useApp();
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   
   const allOrders = user?.history || [];
 
-  // Filter orders based on user requirements:
-  // 1. Cancelled orders stay for 24 hours.
-  // 2. Completed/Paid orders stay for 24 hours.
-  // 3. Prepared/Pending orders stay until they change.
-  const visibleOrders = allOrders.filter(order => {
-    if (order.status === 'cancelled' || order.status === 'completed') {
-      const orderDate = new Date(order.date).getTime();
-      const now = new Date().getTime();
-      const hoursDiff = (now - orderDate) / (1000 * 60 * 60);
-      return hoursDiff <= 24;
-    }
-    return true;
-  });
+  const visibleOrders = allOrders;
 
   // Sort orders: Pending/Prepared first, then Completed
   const sortedOrders = [...visibleOrders].sort((a, b) => {
@@ -66,6 +54,32 @@ export function OrdersPage() {
       </header>
 
       <main className="px-4 py-4 space-y-6">
+        {user?.supportMessage && new Date(user.supportMessage.expiresAt) > new Date() && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-primary/10 border border-primary/20 rounded-2xl p-4 relative"
+          >
+            <div className="flex gap-3">
+              <AlertCircle className="text-primary shrink-0 mt-0.5" size={20} />
+              <div className="flex-1">
+                <p className="text-sm text-neutral-800 dark:text-neutral-200 leading-relaxed">
+                  {user.supportMessage.text}
+                </p>
+                <p className="text-xs text-neutral-500 mt-2 font-medium">
+                  Atentamente, el soporte de <a href="https://www.authomia.cloud/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Authomia</a>
+                </p>
+                <button 
+                  onClick={() => dismissSupportMessage()}
+                  className="mt-3 text-xs font-bold text-primary hover:text-primary/80 transition-colors"
+                >
+                  Entendido, ocultar mensaje
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {sortedOrders.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-[50vh] text-neutral-500 text-center">
             <div className="w-20 h-20 bg-neutral-100 dark:bg-neutral-900 rounded-[1.5rem] flex items-center justify-center mb-4 rotate-6">

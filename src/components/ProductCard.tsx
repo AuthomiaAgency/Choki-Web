@@ -1,7 +1,6 @@
 import { motion } from 'motion/react';
 import { Product } from '../types';
 import { formatCurrency } from '../utils';
-import { Plus, Heart, Tag } from 'lucide-react';
 import { FC } from 'react';
 import React from 'react';
 import { useApp } from '../context';
@@ -32,59 +31,57 @@ export const ProductCard: FC<ProductCardProps> = ({ product, onClick }) => {
     <motion.div
       layoutId={`product-${product.id}`}
       whileTap={{ scale: 0.98 }}
-      className={`group relative bg-white dark:bg-neutral-900 rounded-[1.5rem] sm:rounded-[2rem] overflow-hidden border shadow-lg sm:shadow-xl cursor-default flex flex-col h-full transition-all hover:shadow-2xl hover:shadow-primary/5 ${
+      onClick={onClick}
+      className={`group relative bg-white dark:bg-neutral-900 rounded-2xl p-3 flex items-center gap-4 cursor-pointer transition-all hover:bg-neutral-50 dark:hover:bg-neutral-800/80 border ${
         isHighlighted 
-          ? 'border-primary shadow-primary/30 ring-2 ring-primary/50 scale-[1.02]' 
-          : 'border-neutral-200 dark:border-white/5'
+          ? 'border-primary shadow-lg shadow-primary/20' 
+          : 'border-neutral-200 dark:border-white/5 hover:border-primary/30'
       }`}
     >
       {isHighlighted && (
-        <div className="absolute inset-0 bg-primary/5 z-0 pointer-events-none animate-pulse" />
+        <div className="absolute inset-0 bg-primary/5 z-0 pointer-events-none animate-pulse rounded-2xl" />
       )}
-      <div 
-        onClick={onClick}
-        className="aspect-square overflow-hidden relative cursor-pointer p-3 sm:p-4"
-      >
+      
+      {/* Image */}
+      <div className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-xl overflow-hidden bg-neutral-100 dark:bg-neutral-800">
         <img 
           src={product.image} 
           alt={product.name} 
-          className="w-full h-full object-cover rounded-[1rem] sm:rounded-[1.5rem] transition-transform duration-500 group-hover:scale-105"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
-        
-        {product.stock < 20 && (
-          <div className="absolute top-4 right-4 sm:top-6 sm:right-6 bg-red-500/90 backdrop-blur-md px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-lg border border-white/10 shadow-sm z-10">
-            <span className="text-[7px] sm:text-[8px] font-bold text-white uppercase font-display">¡Últimos!</span>
-          </div>
-        )}
-        
-        {hasActivePromo && (
-          <div className="absolute top-4 left-4 sm:top-6 sm:left-6 bg-gradient-to-r from-primary to-orange-600 text-white px-2 py-1 rounded-lg shadow-lg shadow-primary/20 z-10 flex items-center gap-1">
-            <Tag size={10} className="fill-white/20" />
-            <span className="text-[8px] sm:text-[9px] font-bold uppercase font-display tracking-wider">Promo</span>
-          </div>
-        )}
       </div>
 
-      <div className="px-3 sm:px-5 pb-3 sm:pb-5 flex flex-col flex-grow">
-        <div onClick={onClick} className="cursor-pointer flex-grow">
-          <h3 className="font-display text-base sm:text-xl font-bold text-neutral-900 dark:text-white leading-tight mb-0.5 sm:mb-1 group-hover:text-primary transition-colors line-clamp-1">
+      {/* Content */}
+      <div className="flex-grow min-w-0 py-1 pr-2 flex flex-col justify-center">
+        <div className="flex items-start gap-2 mb-1">
+          <h3 className="font-display text-[15px] sm:text-base leading-tight font-bold text-neutral-900 dark:text-white line-clamp-2">
             {product.name}
           </h3>
-          <p className="text-primary font-bold font-display text-sm sm:text-lg mb-2 sm:mb-4">
-            {formatCurrency(product.price)}
-          </p>
+          {hasActivePromo && (
+            <span className="shrink-0 bg-primary text-neutral-950 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider mt-0.5">
+              Promo
+            </span>
+          )}
+          {product.stock < 20 && !hasActivePromo && (
+            <span className="shrink-0 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider mt-0.5">
+              Hot
+            </span>
+          )}
         </div>
-        
-        {!isAdmin && (
-          <button
-            onClick={handleAdd}
-            className="w-full py-2.5 sm:py-4 bg-primary text-neutral-950 font-display font-bold text-xs sm:text-sm rounded-xl sm:rounded-2xl shadow-lg shadow-primary/20 hover:bg-primary/90 active:scale-95 transition-all flex items-center justify-center gap-1 sm:gap-2"
-          >
-            <Plus size={16} sm:size={18} strokeWidth={3} />
-            Añadir
-          </button>
-        )}
+        <p className="text-primary font-bold font-display text-sm sm:text-base mt-1">
+          {formatCurrency(product.price)}
+        </p>
       </div>
+
+      {/* Action Button */}
+      {!isAdmin && (
+        <button
+          onClick={handleAdd}
+          className="shrink-0 px-4 py-2 bg-primary text-neutral-950 font-display font-bold text-xs sm:text-sm rounded-full hover:bg-primary/90 active:scale-95 transition-all shadow-lg shadow-primary/20"
+        >
+          COMPRAR
+        </button>
+      )}
     </motion.div>
   );
 };

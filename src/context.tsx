@@ -24,7 +24,8 @@ import {
   deleteDoc, 
   query, 
   orderBy, 
-  where 
+  where,
+  deleteField
 } from 'firebase/firestore';
 
 interface AppContextType {
@@ -85,6 +86,7 @@ interface AppContextType {
   addCustomLanding: (landing: Omit<CustomLanding, 'id'>) => Promise<CustomLanding>;
   deleteCustomLanding: (id: string) => Promise<void>;
   getAppliedPromo: () => Promo | null;
+  dismissSupportMessage: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -881,6 +883,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const dismissSupportMessage = async () => {
+    if (!user || !db) return;
+    try {
+      await updateDoc(doc(db, 'users', user.id), {
+        supportMessage: deleteField()
+      });
+    } catch (e: any) {
+      console.error('Error dismissing message:', e);
+    }
+  };
+
   const toggleTheme = () => {
     setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
   };
@@ -1034,7 +1047,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updateAdvancedConfig,
       addCustomLanding,
       deleteCustomLanding,
-      getAppliedPromo
+      getAppliedPromo,
+      dismissSupportMessage
     }}>
       {children}
     </AppContext.Provider>

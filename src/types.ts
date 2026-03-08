@@ -77,6 +77,11 @@ export interface User {
   pointHistory: ChokiPointTransaction[];
   notifications: { id: string; message: string; date: string; expiresAt: string }[];
   lastNameChange?: string;
+  supportMessage?: {
+    id: string;
+    text: string;
+    expiresAt: string;
+  };
 }
 
 export interface CustomLanding {
