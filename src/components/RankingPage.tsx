@@ -236,7 +236,7 @@ export function RankingPage() {
           </div>
 
           {/* Tiempo - Bottom Small */}
-          <div className="pt-3 border-t border-neutral-100 dark:border-white/5 flex justify-center">
+          <div className="pt-3 border-t border-neutral-100 dark:border-white/5 flex flex-col items-center gap-1">
             <div className="flex items-center gap-2">
               <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">
                 {seasonOver ? 'Temporada Finalizada' : 'Termina en:'}
@@ -245,6 +245,9 @@ export function RankingPage() {
                 {seasonOver ? '00:00:00' : `${timeLeft.days}d ${timeLeft.hours}:${timeLeft.minutes.toString().padStart(2, '0')}:${timeLeft.seconds.toString().padStart(2, '0')}`}
               </p>
             </div>
+            <p className="text-[8px] text-neutral-400 font-medium italic">
+              La temporada se reinicia automáticamente el 1 de cada mes.
+            </p>
           </div>
         </div>
       </div>

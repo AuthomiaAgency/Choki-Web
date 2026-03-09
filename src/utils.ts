@@ -33,6 +33,13 @@ export function calculateSeasonWinner(users: User[], seasonStartDate: string) {
   return pointsRanking.length > 0 ? pointsRanking[0] : null;
 }
 
+export function getNextMonthFirstDay() {
+  const now = new Date();
+  // Create a date for the 1st day of the next month at 00:00:00
+  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0);
+  return nextMonth.toISOString();
+}
+
 export function getChocolateAvatar(id: number) {
   // Friendly, well-made people avatars with light colors
   // Using specific "happy/hungry" parameters for avataaars

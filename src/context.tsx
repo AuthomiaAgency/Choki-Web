@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { CartItem, Order, Product, User, PRODUCTS, Promo, ChokiPointTransaction, AdvancedConfig, DEFAULT_CONFIG, CustomLanding } from './types';
 import { toast } from 'sonner';
 import { auth, db } from './firebase';
-import { formatCurrency, calculateSeasonWinner } from './utils';
+import { formatCurrency, calculateSeasonWinner, getNextMonthFirstDay } from './utils';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
@@ -200,7 +200,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         // Initialize seasonEndDate if missing
         if (!data.seasonEndDate || !data.seasonStartDate) {
           const defaultStartDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-          const defaultEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+          const defaultEndDate = getNextMonthFirstDay();
           await setDoc(doc(db, 'settings', 'advanced'), { 
             seasonEndDate: data.seasonEndDate || defaultEndDate,
             seasonStartDate: data.seasonStartDate || defaultStartDate
@@ -214,7 +214,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             const winner = calculateSeasonWinner(allUsers, data.seasonStartDate!);
             
             const newStartDate = new Date().toISOString();
-            const newEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+            const newEndDate = getNextMonthFirstDay();
             
             await updateDoc(doc(db, 'settings', 'advanced'), {
               seasonStartDate: newStartDate,
@@ -229,7 +229,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       } else {
         // Create default config if doesn't exist
-        const defaultEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        const defaultEndDate = getNextMonthFirstDay();
         const defaultStartDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
         await setDoc(doc(db, 'settings', 'advanced'), { ...DEFAULT_CONFIG, seasonEndDate: defaultEndDate, seasonStartDate: defaultStartDate });
       }
@@ -1101,7 +1101,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!db) return;
     try {
       const newStartDate = new Date().toISOString();
-      const newEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      const newEndDate = getNextMonthFirstDay();
       
       const updateData: Partial<AdvancedConfig> = { 
         seasonStartDate: newStartDate,
