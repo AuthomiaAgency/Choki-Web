@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { useRanking } from '../hooks/useRanking';
 
 export function Profile() {
-  const { user, orders, theme, toggleTheme, logout, setActiveTab, getTotalRevenue, advancedConfig, addCustomLanding, deleteCustomLanding, deleteOrder, createSpecialOrder } = useApp();
+  const { user, orders, theme, toggleTheme, logout, setActiveTab, getTotalRevenue, advancedConfig, addCustomLanding, deleteCustomLanding, deleteOrder, createSpecialOrder, startNewSeason } = useApp();
   const [isCreatingLanding, setIsCreatingLanding] = useState(false);
   const [showCancelled, setShowCancelled] = useState(false);
   const [newLanding, setNewLanding] = useState({ name: '', welcomeMessage: '', buttonText: '', slug: '' });
@@ -96,7 +96,7 @@ export function Profile() {
   };
 
   return (
-    <div className="pb-24 px-4 sm:px-6 pt-6 sm:pt-8">
+    <div className="px-4 sm:px-6 pt-6 sm:pt-8">
       <AnimatePresence>
         {showPrizeModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
@@ -308,6 +308,18 @@ export function Profile() {
               >
                 <PieChartIcon size={20} />
                 Analíticas de Ventas
+              </button>
+
+              <button 
+                onClick={async () => {
+                  if (confirm('¿Estás seguro de que quieres reiniciar la temporada? Esto actualizará el tiempo para todos.')) {
+                    await startNewSeason();
+                  }
+                }}
+                className="w-full py-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl flex items-center justify-center gap-3 text-orange-500 font-display font-bold hover:bg-orange-500/20 transition-all active:scale-95"
+              >
+                <Sparkles size={20} />
+                Reiniciar Temporada Ranking
               </button>
 
               <button 

@@ -79,6 +79,7 @@ export interface User {
   pointHistory: ChokiPointTransaction[];
   notifications: { id: string; message: string; date: string; expiresAt: string }[];
   lastNameChange?: string;
+  claimedSeasons?: string[];
   supportMessage?: {
     id: string;
     text: string;
@@ -96,10 +97,21 @@ export interface CustomLanding {
 
 export interface AdvancedConfig {
   landings: CustomLanding[];
+  seasonStartDate?: string;
+  seasonEndDate?: string;
+  lastSeasonWinner?: {
+    id: string;
+    name: string;
+    avatar: string;
+    value: number;
+    seasonId: string;
+  };
 }
 
 export const DEFAULT_CONFIG: AdvancedConfig = {
-  landings: []
+  landings: [],
+  seasonStartDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // Default yesterday
+  seasonEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // Default 30 days from now
 };
 
 export const PRODUCTS: Product[] = [

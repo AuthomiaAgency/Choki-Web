@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { CartItem, Order, Product, User, PRODUCTS, Promo, ChokiPointTransaction, AdvancedConfig, DEFAULT_CONFIG, CustomLanding } from './types';
 import { toast } from 'sonner';
 import { auth, db } from './firebase';
-import { formatCurrency } from './utils';
+import { formatCurrency, calculateSeasonWinner } from './utils';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
@@ -22,6 +22,7 @@ import {
   onSnapshot, 
   addDoc, 
   deleteDoc, 
+  getDocs,
   query, 
   orderBy, 
   where,
@@ -84,6 +85,8 @@ interface AppContextType {
   setHighlightedProductIds: (ids: string[]) => void;
   advancedConfig: AdvancedConfig;
   updateAdvancedConfig: (config: Partial<AdvancedConfig>) => Promise<void>;
+  startNewSeason: (winnerData?: AdvancedConfig['lastSeasonWinner']) => Promise<void>;
+  claimSeasonPrize: () => Promise<void>;
   addCustomLanding: (landing: Omit<CustomLanding, 'id'>) => Promise<CustomLanding>;
   deleteCustomLanding: (id: string) => Promise<void>;
   getAppliedPromo: () => Promo | null;
@@ -137,16 +140,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const userDoc = await getDoc(userDocRef);
         
         if (userDoc.exists()) {
-          setUser(userDoc.data() as User);
+          const userData = userDoc.data() as User;
+          // Force admin role for specific email
+          if (firebaseUser.email === 'authomia.agency@gmail.com' && userData.role !== 'admin') {
+            const updatedUser = { ...userData, role: 'admin' as const };
+            await updateDoc(userDocRef, { role: 'admin' });
+            setUser(updatedUser);
+          } else {
+            setUser(userData);
+          }
         } else {
           // Create user doc if it doesn't exist (e.g. Google Sign In first time)
           const newUser: User = {
             id: firebaseUser.uid,
             name: firebaseUser.displayName || 'Usuario',
             email: firebaseUser.email || '',
-            role: 'client',
+            role: firebaseUser.email === 'authomia.agency@gmail.com' ? 'admin' : 'client',
             points: 0,
-            avatar: firebaseUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firebaseUser.uid}`,
+            avatar: firebaseUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firebaseUser.uid}&backgroundColor=b6e3f4,c0aede,d1d4f9&mouth=smile,tongue,twinkle&eyes=happy,wink,winkWacky`,
             history: [],
             pointHistory: [],
             notifications: []
@@ -178,9 +189,49 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
 
     // Advanced Config
-    const unsubConfig = onSnapshot(doc(db, 'settings', 'advanced'), (doc) => {
-      if (doc.exists()) {
-        setAdvancedConfig(doc.data() as AdvancedConfig);
+    const unsubConfig = onSnapshot(doc(db, 'settings', 'advanced'), async (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data() as AdvancedConfig;
+        setAdvancedConfig(data);
+        
+        const now = new Date();
+        const endDate = data.seasonEndDate ? new Date(data.seasonEndDate) : null;
+
+        // Initialize seasonEndDate if missing
+        if (!data.seasonEndDate || !data.seasonStartDate) {
+          const defaultStartDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+          const defaultEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+          await setDoc(doc(db, 'settings', 'advanced'), { 
+            seasonEndDate: data.seasonEndDate || defaultEndDate,
+            seasonStartDate: data.seasonStartDate || defaultStartDate
+          }, { merge: true });
+        } else if (endDate && now > endDate) {
+          // AUTOMATIC RESET: Season is over
+          console.log("Season over, resetting automatically...");
+          try {
+            const usersSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'client')));
+            const allUsers = usersSnap.docs.map(d => d.data() as User);
+            const winner = calculateSeasonWinner(allUsers, data.seasonStartDate!);
+            
+            const newStartDate = new Date().toISOString();
+            const newEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+            
+            await updateDoc(doc(db, 'settings', 'advanced'), {
+              seasonStartDate: newStartDate,
+              seasonEndDate: newEndDate,
+              lastSeasonWinner: winner ? { ...winner, seasonId: data.seasonStartDate! } : null
+            });
+            
+            toast.info('¡La temporada ha terminado! Se ha iniciado una nueva automáticamente.');
+          } catch (e) {
+            console.error("Error in automatic season reset:", e);
+          }
+        }
+      } else {
+        // Create default config if doesn't exist
+        const defaultEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        const defaultStartDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        await setDoc(doc(db, 'settings', 'advanced'), { ...DEFAULT_CONFIG, seasonEndDate: defaultEndDate, seasonStartDate: defaultStartDate });
       }
     });
 
@@ -198,14 +249,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
         // Notify Admin of new orders
         if (user.role === 'admin') {
           const now = Date.now();
-          const thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
+          const twentyFourHoursAgo = now - (24 * 60 * 60 * 1000);
           
-          // Auto-delete old cancelled orders
+          // Auto-delete old completed/cancelled orders after 24 hours
           ords.forEach(o => {
-            if (o.status === 'cancelled') {
-              const orderTime = new Date(o.date).getTime();
-              if (orderTime < thirtyDaysAgo) {
-                deleteOrder(o.id).catch(console.error);
+            if (o.status === 'completed' || o.status === 'cancelled') {
+              const statusTime = o.status === 'completed' ? o.completedAt : o.cancelledAt;
+              if (statusTime) {
+                const time = new Date(statusTime).getTime();
+                if (time < twentyFourHoursAgo) {
+                  deleteOrder(o.id).catch(console.error);
+                }
+              } else {
+                // Fallback to creation date if status time is missing
+                const orderTime = new Date(o.date).getTime();
+                if (orderTime < twentyFourHoursAgo) {
+                  deleteOrder(o.id).catch(console.error);
+                }
               }
             }
           });
@@ -289,7 +349,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         email,
         role: 'client',
         points: 0,
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`,
+        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}&backgroundColor=b6e3f4,c0aede,d1d4f9&mouth=smile,tongue,twinkle&eyes=happy,wink,winkWacky`,
         history: [],
         pointHistory: [],
         notifications: []
@@ -1037,6 +1097,69 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const startNewSeason = async (winnerData?: AdvancedConfig['lastSeasonWinner']) => {
+    if (!db) return;
+    try {
+      const newStartDate = new Date().toISOString();
+      const newEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      
+      const updateData: Partial<AdvancedConfig> = { 
+        seasonStartDate: newStartDate,
+        seasonEndDate: newEndDate 
+      };
+
+      if (winnerData) {
+        updateData.lastSeasonWinner = winnerData;
+      }
+
+      await updateAdvancedConfig(updateData);
+      toast.success('¡Nueva temporada iniciada!');
+    } catch (e: any) {
+      toast.error('Error al iniciar nueva temporada');
+    }
+  };
+
+  const claimSeasonPrize = async () => {
+    if (!user || !advancedConfig.lastSeasonWinner) return;
+    
+    const winner = advancedConfig.lastSeasonWinner;
+    if (winner.id !== user.id) {
+      toast.error('Solo el ganador de la temporada puede reclamar este premio');
+      return;
+    }
+
+    if (user.claimedSeasons?.includes(winner.seasonId)) {
+      toast.error('Ya has reclamado el premio de esta temporada');
+      return;
+    }
+
+    try {
+      await createSpecialOrder({
+        items: [{
+          id: 'prize-custom-chocoteja',
+          name: 'REGALO ESPECIAL CHOCOTEJA PERSONALIZADA',
+          price: 0,
+          quantity: 1,
+          image: 'https://copilot.microsoft.com/th/id/BCO.0422c8a8-09b8-4328-bec7-f147697257f1.png',
+          category: 'Especial',
+          description: 'Premio por ser el Rey de la Temporada',
+          points: 0
+        }],
+        total: 0,
+        isRedemption: true,
+        pointsCost: 0
+      });
+
+      const updatedClaimed = [...(user.claimedSeasons || []), winner.seasonId];
+      await updateUser({ claimedSeasons: updatedClaimed });
+      
+      toast.success('¡Premio reclamado con éxito!');
+      window.open('https://wa.link/ssc6u5', '_blank');
+    } catch (e) {
+      toast.error('Error al reclamar el premio');
+    }
+  };
+
   return (
     <AppContext.Provider value={{
       user,
@@ -1087,6 +1210,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setHighlightedProductIds,
       advancedConfig,
       updateAdvancedConfig,
+      startNewSeason,
+      claimSeasonPrize,
       addCustomLanding,
       deleteCustomLanding,
       getAppliedPromo,

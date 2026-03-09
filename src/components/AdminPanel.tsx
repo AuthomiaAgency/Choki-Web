@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context';
 import { formatCurrency } from '../utils';
-import { CheckCircle, XCircle, Clock, DollarSign, Package, Plus, Edit2, Trash2, Tag, Store, History, Save, X, Image as ImageIcon, List, Upload, PieChart as PieChartIcon, Settings } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, DollarSign, Package, Plus, Edit2, Trash2, Tag, Store, History, Save, X, Image as ImageIcon, List, Upload, PieChart as PieChartIcon, Settings, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Product, Promo, Order } from '../types';
+import { Profile } from './Profile';
 import { toast } from 'sonner';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { collection, onSnapshot, query, orderBy, doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 export function AdminPanel() {
   const { 
@@ -14,7 +17,24 @@ export function AdminPanel() {
     getSectorizedSales, deleteOrder, advancedConfig, updateAdvancedConfig
   } = useApp();
   
+  const [orderErrors, setOrderErrors] = useState<any[]>([]);
+  const [resolvingReportId, setResolvingReportId] = useState<string | null>(null);
+  const [resolutionText, setResolutionText] = useState('');
   const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
+
+  const prevErrorsLength = useRef(0);
+  useEffect(() => {
+    const q = query(collection(db, 'orderErrors'), orderBy('createdAt', 'desc'));
+    const unsub = onSnapshot(q, (snap) => {
+      const newErrors = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (newErrors.length > prevErrorsLength.current) {
+        toast.info('Nuevo reporte de error recibido');
+      }
+      prevErrorsLength.current = newErrors.length;
+      setOrderErrors(newErrors);
+    });
+    return unsub;
+  }, []);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   
   const [editingPromo, setEditingPromo] = useState<Partial<Promo> | null>(null);
@@ -736,6 +756,152 @@ export function AdminPanel() {
     </div>
   );
 
+  const renderReports = () => {
+    const pending = orderErrors.filter(r => r.status !== 'resolved');
+    const resolved = orderErrors.filter(r => r.status === 'resolved');
+
+    return (
+      <div className="space-y-8">
+        <section>
+          <h2 className="text-xl font-display font-bold mb-4">Reportes Pendientes</h2>
+          <div className="space-y-4">
+            {pending.length === 0 ? (
+              <div className="text-center py-8 bg-neutral-900/50 rounded-[2rem] border border-dashed border-white/5">
+                <p className="text-neutral-500 italic text-sm">No hay reportes pendientes</p>
+              </div>
+            ) : (
+              pending.map(report => (
+                <div key={report.id} className="bg-neutral-900 border border-white/5 rounded-[1.5rem] p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-bold">{report.userName}</h3>
+                      <p className="text-xs text-neutral-500">Pedido: #{report.orderId.slice(-6)}</p>
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-lg bg-amber-500/10 text-amber-500">
+                      Pendiente
+                    </span>
+                  </div>
+                  <p className="text-sm mt-3 text-neutral-300">{report.description}</p>
+                  
+                  <div className="mt-4 space-y-3">
+                    {resolvingReportId === report.id ? (
+                      <div className="space-y-2">
+                        <textarea 
+                          value={resolutionText}
+                          onChange={e => setResolutionText(e.target.value)}
+                          placeholder="Escribe una respuesta para el cliente..."
+                          className="w-full bg-neutral-800 rounded-xl p-3 text-xs border border-white/10 focus:border-primary outline-none h-20"
+                        />
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={async () => {
+                              await updateDoc(doc(db, 'orderErrors', report.id), {
+                                status: 'resolved',
+                                resolution: resolutionText,
+                                resolvedAt: new Date().toISOString()
+                              });
+                              setResolvingReportId(null);
+                              setResolutionText('');
+                              toast.success('Reporte resuelto');
+                            }}
+                            className="flex-1 py-2 bg-emerald-500 text-neutral-950 text-xs font-bold rounded-lg"
+                          >
+                            Confirmar Resolución
+                          </button>
+                          <button 
+                            onClick={() => setResolvingReportId(null)}
+                            className="px-4 py-2 bg-neutral-800 text-white text-xs font-bold rounded-lg"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => setResolvingReportId(report.id)}
+                          className="flex-1 py-2 bg-primary/10 text-primary text-xs font-bold rounded-lg hover:bg-primary/20 transition-colors"
+                        >
+                          Resolver Reporte
+                        </button>
+                        <button 
+                          onClick={async () => {
+                            await updateOrderStatus(report.orderId, 'completed');
+                            await updateDoc(doc(db, 'orderErrors', report.id), {
+                              status: 'resolved',
+                              resolution: 'El pedido ha sido marcado como pagado y completado.',
+                              resolvedAt: new Date().toISOString()
+                            });
+                            toast.success('Pedido completado y reporte resuelto');
+                          }}
+                          className="flex-1 py-2 bg-emerald-500/10 text-emerald-500 text-xs font-bold rounded-lg hover:bg-emerald-500/20 transition-colors"
+                        >
+                          Marcar Pagado
+                        </button>
+                        <button 
+                          onClick={async () => {
+                            if (confirm('¿Eliminar este reporte definitivamente?')) {
+                              await deleteDoc(doc(db, 'orderErrors', report.id));
+                              toast.success('Reporte eliminado');
+                            }
+                          }}
+                          className="p-2 text-neutral-500 hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        {resolved.length > 0 && (
+          <section>
+            <h2 className="text-xl font-display font-bold mb-4 opacity-60">Historial de Reportes</h2>
+            <div className="space-y-3">
+              {resolved.map(report => (
+                <div key={report.id} className="bg-neutral-900/50 border border-white/5 rounded-[1.5rem] p-4 opacity-75">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-bold text-neutral-400">{report.userName}</h3>
+                      <p className="text-[10px] text-neutral-600">Pedido: #{report.orderId.slice(-6)}</p>
+                    </div>
+                    <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-500">
+                      Resuelto
+                    </span>
+                  </div>
+                  <p className="text-xs mt-2 text-neutral-500 italic">"{report.description}"</p>
+                  {report.resolution && (
+                    <div className="mt-3 p-2 bg-emerald-500/5 border border-emerald-500/10 rounded-xl">
+                      <p className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest mb-1">Resolución</p>
+                      <p className="text-[10px] text-neutral-400">{report.resolution}</p>
+                    </div>
+                  )}
+                  <div className="mt-3 flex justify-end">
+                    <button 
+                      onClick={async () => {
+                        if (confirm('¿Eliminar este reporte del historial?')) {
+                          await deleteDoc(doc(db, 'orderErrors', report.id));
+                          toast.success('Reporte eliminado');
+                        }
+                      }}
+                      className="text-[10px] text-neutral-600 hover:text-red-500 transition-colors"
+                    >
+                      Eliminar del historial
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+    );
+  };
+
   const renderOrders = () => (
     <div className="space-y-8">
       <section>
@@ -863,18 +1029,44 @@ export function AdminPanel() {
     </div>
   );
 
+  const getTabTitle = () => {
+    switch(activeTab) {
+      case 'admin-orders': return 'Gestión de Pedidos';
+      case 'admin-shop': return 'Gestión de Tienda';
+      case 'admin-promos': return 'Gestión de Promos';
+      case 'admin-reports': return 'Reportes de Error';
+      case 'admin-profile': return 'Mi Perfil Admin';
+      case 'admin-stats': return 'Estadísticas de Ventas';
+      default: return 'Panel Admin';
+    }
+  };
+
+  const getTabSubtitle = () => {
+    switch(activeTab) {
+      case 'admin-orders': return 'Controla y actualiza el estado de los pedidos';
+      case 'admin-shop': return 'Administra tus productos y stock';
+      case 'admin-promos': return 'Crea y gestiona promociones atractivas';
+      case 'admin-reports': return 'Resuelve problemas reportados por clientes';
+      case 'admin-profile': return 'Configuración de tu cuenta y enlaces';
+      case 'admin-stats': return 'Visualiza el rendimiento de tu negocio';
+      default: return 'Gestiona tu imperio Choki';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-neutral-950 text-white pb-32">
       <header className="px-6 py-6 border-b border-white/5">
-        <h1 className="text-2xl font-display font-bold mb-1">Panel Admin ⚡️</h1>
-        <p className="text-neutral-500 text-xs font-medium">Gestiona tu imperio Choki</p>
+        <h1 className="text-2xl font-display font-bold mb-1">{getTabTitle()} ⚡️</h1>
+        <p className="text-neutral-500 text-xs font-medium">{getTabSubtitle()}</p>
       </header>
 
-      <main className="p-6">
+      <main className={activeTab === 'admin-profile' ? '' : 'p-6'}>
         {activeTab === 'admin-stats' && renderStats()}
         {activeTab === 'admin-orders' && renderOrders()}
         {activeTab === 'admin-shop' && renderShop()}
         {activeTab === 'admin-promos' && renderPromos()}
+        {activeTab === 'admin-reports' && renderReports()}
+        {activeTab === 'admin-profile' && <Profile />}
       </main>
 
       <AnimatePresence>

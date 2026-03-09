@@ -8,10 +8,21 @@ import { useRanking } from '../hooks/useRanking';
 type RankingTab = 'buyers' | 'points' | 'redemptions';
 
 export function RankingPage() {
-  const { user, setActiveTab, createSpecialOrder } = useApp();
+  const { user, setActiveTab, createSpecialOrder, startNewSeason, advancedConfig, claimSeasonPrize } = useApp();
   const [activeTab, setLocalTab] = useState<RankingTab>('buyers');
   const [showWinnerAnimation, setShowWinnerAnimation] = useState(false);
-  const { loading, getRankingData } = useRanking();
+  const { loading, getRankingData, isSeasonOver, getRemainingTime, getHistoricalRecord } = useRanking();
+  const seasonOver = isSeasonOver();
+  const [timeLeft, setTimeLeft] = useState(getRemainingTime());
+  const historicalRecord = getHistoricalRecord(activeTab);
+
+  useEffect(() => {
+    if (seasonOver) return;
+    const timer = setInterval(() => {
+      setTimeLeft(getRemainingTime());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [seasonOver]);
 
   const [records, setRecords] = useState({
     buyers: 0,
@@ -20,26 +31,12 @@ export function RankingPage() {
   });
 
   const rankingData = getRankingData(activeTab, user?.id);
+  const buyersRanking = getRankingData('buyers', user?.id);
+  const pointsRanking = getRankingData('points', user?.id);
+  const redemptionsRanking = getRankingData('redemptions', user?.id);
 
-  useEffect(() => {
-    if (rankingData.length > 0) {
-      setRecords({
-        buyers: Math.max(...rankingData.map(u => u.value)),
-        points: Math.max(...rankingData.map(u => u.value)),
-        redemptions: Math.max(...rankingData.map(u => u.value))
-      });
-    }
-  }, [rankingData]);
-
-  const mockWinner = rankingData.length > 0 ? {
-    name: rankingData[0].name,
-    avatar: rankingData[0].avatar,
-  } : {
-    name: "Aún no hay rey",
-    avatar: CHOCOLATE_AVATARS[0],
-  };
-
-  const isCurrentUserWinner = rankingData.length > 0 && rankingData[0].id === user?.id;
+  const currentKing = rankingData.length > 0 ? rankingData[0] : null;
+  const isCurrentUserWinner = currentKing?.id === user?.id;
 
   useEffect(() => {
     const currentMonth = new Date().toISOString().slice(0, 7);
@@ -57,25 +54,13 @@ export function RankingPage() {
   };
 
   const handleClaimAndClose = async () => {
-    try {
-      await createSpecialOrder({
-        items: [{
-          id: 'prize-custom-chocoteja',
-          name: 'REGALO ESPECIAL CHOCOTEJA PERSONALIZADA',
-          price: 0,
-          quantity: 1,
-          image: 'https://copilot.microsoft.com/th/id/BCO.0422c8a8-09b8-4328-bec7-f147697257f1.png',
-          category: 'Especial'
-        }],
-        total: 0,
-        isRedemption: true,
-        pointsCost: 0
-      });
-      window.open('https://wa.link/ssc6u5', '_blank');
-      handleCloseAnimation();
-    } catch (e) {
-      console.error(e);
-    }
+    await claimSeasonPrize();
+    handleCloseAnimation();
+  };
+
+  const handleRenewRanking = async () => {
+    await startNewSeason();
+    handleCloseAnimation();
   };
   const top3 = rankingData.slice(0, 3);
   const rest = rankingData.slice(3, 5); // Show up to top 5
@@ -97,7 +82,7 @@ export function RankingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 pb-32 relative">
+    <div className="bg-neutral-50 dark:bg-neutral-950 relative">
       <AnimatePresence>
         {activeTab === 'points' && showWinnerAnimation && (
           <motion.div 
@@ -123,7 +108,9 @@ export function RankingPage() {
 
                 <Crown size={48} className="text-yellow-500 fill-yellow-500 mb-6 relative z-10 drop-shadow-[0_0_15px_rgba(234,179,8,0.5)]" />
                 
-                <h2 className="text-primary font-bold tracking-widest text-xs uppercase mb-2 relative z-10">El mayor chocotejero del mes fue...</h2>
+                <h2 className="text-primary font-bold tracking-widest text-xs uppercase mb-2 relative z-10">
+                  {seasonOver ? 'El mayor chocotejero de la temporada fue...' : 'Rey actual del ranking'}
+                </h2>
                 
                 <div className="relative mb-6 mt-4 z-10">
                   <motion.div 
@@ -131,20 +118,22 @@ export function RankingPage() {
                     transition={{ duration: 2, repeat: Infinity }}
                     className="w-32 h-32 rounded-full border-4 border-primary p-1 bg-neutral-800 shadow-[0_0_30px_rgba(245,158,11,0.3)]"
                   >
-                    <img src={mockWinner.avatar} alt={mockWinner.name} className="w-full h-full rounded-full object-cover" />
+                    <img src={currentKing?.avatar || CHOCOLATE_AVATARS[0]} alt={currentKing?.name || "Rey"} className="w-full h-full rounded-full object-cover" />
                   </motion.div>
                   <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-primary text-neutral-950 font-bold px-4 py-1 rounded-full text-sm whitespace-nowrap shadow-lg">
-                    {mockWinner.name}
+                    {currentKing?.name || "Aún no hay rey"}
                   </div>
                 </div>
 
                 <p className="text-neutral-300 text-sm mb-8 relative z-10">
-                  {isCurrentUserWinner 
+                  {isCurrentUserWinner && seasonOver
                     ? '¡Felicidades! Has ganado el derecho a crear tu propia chocoteja personalizada totalmente gratis.'
-                    : `¡${mockWinner.name} ha ganado el derecho a crear su propia chocoteja personalizada totalmente gratis!`}
+                    : seasonOver
+                    ? `¡${currentKing?.name} ha ganado el derecho a crear su propia chocoteja personalizada totalmente gratis!`
+                    : `¡${currentKing?.name} lidera el ranking actual! La temporada termina pronto.`}
                 </p>
 
-                {isCurrentUserWinner ? (
+                {isCurrentUserWinner && seasonOver ? (
                   <button 
                     onClick={handleClaimAndClose}
                     className="w-full py-4 bg-primary text-neutral-950 font-bold font-display rounded-2xl hover:bg-primary/90 transition-colors relative z-10 shadow-lg shadow-primary/20 mb-3"
@@ -153,16 +142,16 @@ export function RankingPage() {
                   </button>
                 ) : (
                   <button 
-                    onClick={handleCloseAnimation}
+                    onClick={handleRenewRanking}
                     className="w-full py-4 bg-primary text-neutral-950 font-bold font-display rounded-2xl hover:bg-primary/90 transition-colors relative z-10 shadow-lg shadow-primary/20"
                   >
-                    Renovar Ranking
+                    {seasonOver ? 'Renovar Ranking' : 'Cerrar'}
                   </button>
                 )}
                 
                 {isCurrentUserWinner && (
                   <button 
-                    onClick={handleCloseAnimation}
+                    onClick={handleRenewRanking}
                     className="w-full py-3 text-neutral-400 font-bold font-display rounded-2xl hover:text-white transition-colors relative z-10"
                   >
                     Solo Renovar Ranking
@@ -175,6 +164,39 @@ export function RankingPage() {
       </AnimatePresence>
 
       <div className="px-4 sm:px-6 pt-6 sm:pt-8 pb-6 bg-gradient-to-b from-primary/10 to-transparent">
+        {/* Last Season Winner Banner */}
+        {advancedConfig.lastSeasonWinner && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 bg-gradient-to-r from-yellow-500/20 via-primary/20 to-yellow-500/20 border border-primary/30 p-4 rounded-2xl flex items-center justify-between gap-4"
+          >
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <img src={advancedConfig.lastSeasonWinner.avatar} alt="Winner" className="w-12 h-12 rounded-full border-2 border-primary" />
+                <Crown size={16} className="absolute -top-2 -right-1 text-yellow-500 fill-yellow-500" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Rey de la Temporada Pasada</p>
+                <p className="text-sm font-bold text-neutral-900 dark:text-white">{advancedConfig.lastSeasonWinner.name}</p>
+              </div>
+            </div>
+            {user?.id === advancedConfig.lastSeasonWinner.id && !user.claimedSeasons?.includes(advancedConfig.lastSeasonWinner.seasonId) && (
+              <button 
+                onClick={claimSeasonPrize}
+                className="px-4 py-2 bg-primary text-neutral-950 text-xs font-bold rounded-xl shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+              >
+                Reclamar Premio
+              </button>
+            )}
+            {user?.id === advancedConfig.lastSeasonWinner.id && user.claimedSeasons?.includes(advancedConfig.lastSeasonWinner.seasonId) && (
+              <div className="px-4 py-2 bg-neutral-200 dark:bg-neutral-800 text-neutral-500 text-[10px] font-bold rounded-xl">
+                Premio Reclamado
+              </div>
+            )}
+          </motion.div>
+        )}
+
         <div className="flex justify-between items-start mb-6">
           <div>
             <h2 className="font-display text-3xl sm:text-4xl font-bold text-neutral-900 dark:text-white mb-2 flex items-center gap-3">
@@ -188,28 +210,47 @@ export function RankingPage() {
         </div>
 
         {/* Corners Info */}
-        <div className="flex justify-between items-center bg-white dark:bg-neutral-900 rounded-2xl p-3 shadow-sm border border-neutral-100 dark:border-white/5 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <img src={mockWinner.avatar} alt="Winner" className="w-10 h-10 rounded-full border-2 border-primary" />
-              <div className="absolute -top-2 -right-2 bg-yellow-500 rounded-full p-0.5 shadow-md">
-                <Crown size={10} className="text-white fill-white" />
+        <div className="bg-white dark:bg-neutral-900 rounded-3xl p-4 shadow-sm border border-neutral-100 dark:border-white/5 mb-6">
+          <div className="flex justify-between items-center mb-4">
+            {/* Rey Actual - Left */}
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <img src={currentKing?.avatar || CHOCOLATE_AVATARS[0]} alt="Winner" className="w-10 h-10 rounded-full border-2 border-primary" />
+                <div className="absolute -top-2 -right-2 bg-yellow-500 rounded-full p-0.5 shadow-md">
+                  <Crown size={10} className="text-white fill-white" />
+                </div>
+              </div>
+              <div>
+                <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Rey Actual</p>
+                <p className="text-xs font-bold text-neutral-900 dark:text-white">{currentKing?.name || 'N/A'}</p>
               </div>
             </div>
-            <div>
-              <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Rey Anterior</p>
-              <p className="text-xs font-bold text-neutral-900 dark:text-white">{mockWinner.name}</p>
+
+            {/* Record Histórico - Right */}
+            <div className="text-right">
+              <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Récord Histórico</p>
+              <p className="text-4xl font-display font-bold text-primary leading-none mt-1">
+                {historicalRecord?.value || 0}
+              </p>
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Récord Histórico</p>
-            <p className="text-lg font-display font-bold text-primary">{records[activeTab]}</p>
+
+          {/* Tiempo - Bottom Small */}
+          <div className="pt-3 border-t border-neutral-100 dark:border-white/5 flex justify-center">
+            <div className="flex items-center gap-2">
+              <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">
+                {seasonOver ? 'Temporada Finalizada' : 'Termina en:'}
+              </p>
+              <p className="text-xs font-display font-bold text-primary">
+                {seasonOver ? '00:00:00' : `${timeLeft.days}d ${timeLeft.hours}:${timeLeft.minutes.toString().padStart(2, '0')}:${timeLeft.seconds.toString().padStart(2, '0')}`}
+              </p>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="px-4 sm:px-6 mb-8">
+      <div className="px-4 sm:px-6 mb-4 -mt-4 relative z-20">
         <div className="flex bg-neutral-200/50 dark:bg-neutral-900/50 p-1 rounded-2xl items-stretch">
           {tabs.map(tab => {
             const isActive = activeTab === tab.id;
@@ -248,37 +289,43 @@ export function RankingPage() {
         </div>
       </div>
 
-      {rankingData.length === 0 ? (
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="mx-4 sm:mx-6 mt-8 p-8 bg-gradient-to-br from-primary/20 via-orange-500/10 to-transparent rounded-[2rem] border border-primary/20 text-center relative overflow-hidden shadow-2xl shadow-primary/5"
-        >
-          <div className="absolute -top-10 -right-10 text-primary/10 rotate-12">
-            <Trophy size={160} />
-          </div>
-          <div className="relative z-10 flex flex-col items-center">
-            <div className="w-24 h-24 bg-gradient-to-br from-primary to-orange-500 rounded-full flex items-center justify-center mb-6 shadow-lg shadow-primary/30 animate-bounce">
-              <Star size={40} className="text-white fill-white" />
+      {seasonOver ? (
+        <div className="px-4 sm:px-6 mt-8">
+          <h3 className="font-display text-2xl font-bold text-neutral-900 dark:text-white mb-6 text-center">
+            🏆 Reyes de la Temporada
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Points King (Most prominent) */}
+            <div className="bg-gradient-to-br from-primary/20 to-orange-500/20 p-6 rounded-3xl border border-primary/20 text-center shadow-xl">
+              <Crown size={48} className="text-yellow-500 mx-auto mb-4" />
+              <h4 className="font-bold text-lg mb-1">Chokipoints</h4>
+              <img src={pointsRanking[0]?.avatar || CHOCOLATE_AVATARS[0]} alt="King" className="w-20 h-20 rounded-full mx-auto mb-2 border-4 border-primary" />
+              <p className="font-bold">{pointsRanking[0]?.name || 'N/A'}</p>
+              <p className="text-sm text-neutral-500">{pointsRanking[0]?.formattedValue || '0 pts'}</p>
             </div>
-            <h3 className="font-display font-bold text-2xl sm:text-3xl text-neutral-900 dark:text-white mb-3 tracking-tight">
-              ¡El ranking está en cero!
-            </h3>
-            <p className="text-neutral-600 dark:text-neutral-300 text-sm sm:text-base mb-8 max-w-xs mx-auto">
-              Una nueva temporada ha comenzado. ¡Sé el primero en coronarte como el rey de las chocotejas!
-            </p>
-            <button 
-              onClick={() => setActiveTab('home')}
-              className="w-full sm:w-auto px-8 py-4 bg-primary text-neutral-950 font-display font-bold text-lg rounded-2xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
-            >
-              Comprar ahora <ArrowRight size={20} />
-            </button>
+            {/* Buyers King */}
+            <div className="bg-white dark:bg-neutral-900 p-6 rounded-3xl border border-neutral-200 dark:border-neutral-800 text-center">
+              <Star size={40} className="text-blue-500 mx-auto mb-4" />
+              <h4 className="font-bold text-lg mb-1">Compradores</h4>
+              <img src={buyersRanking[0]?.avatar || CHOCOLATE_AVATARS[0]} alt="King" className="w-16 h-16 rounded-full mx-auto mb-2 border-4 border-blue-200" />
+              <p className="font-bold">{buyersRanking[0]?.name || 'N/A'}</p>
+              <p className="text-sm text-neutral-500">{buyersRanking[0]?.formattedValue || '0'}</p>
+            </div>
+            {/* Redemptions King */}
+            <div className="bg-white dark:bg-neutral-900 p-6 rounded-3xl border border-neutral-200 dark:border-neutral-800 text-center">
+              <Gift size={40} className="text-green-500 mx-auto mb-4" />
+              <h4 className="font-bold text-lg mb-1">Canjes</h4>
+              <img src={redemptionsRanking[0]?.avatar || CHOCOLATE_AVATARS[0]} alt="King" className="w-16 h-16 rounded-full mx-auto mb-2 border-4 border-green-200" />
+              <p className="font-bold">{redemptionsRanking[0]?.name || 'N/A'}</p>
+              <p className="text-sm text-neutral-500">{redemptionsRanking[0]?.formattedValue || '0'}</p>
+            </div>
           </div>
-        </motion.div>
+        </div>
       ) : (
+        // ... (existing ranking list)
         <div className="px-4 sm:px-6">
           {/* Top 3 Pyramid */}
-          <div className="flex justify-center items-end gap-2 sm:gap-4 mb-8 mt-12 h-48">
+          <div className="flex justify-center items-end gap-2 sm:gap-4 mb-8 mt-20 h-48">
             {/* 2nd Place */}
             {top3[1] && (
               <motion.div 
@@ -338,7 +385,6 @@ export function RankingPage() {
               </motion.div>
             )}
           </div>
-
           {/* Rest of the list */}
           <div className="space-y-3">
             {rest.map((u, index) => (

@@ -1,15 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context';
-import { ArrowLeft, Package, Clock, CheckCircle2, XCircle, AlertCircle, Trash2, PartyPopper, Tag } from 'lucide-react';
+import { ArrowLeft, Package, Clock, CheckCircle2, XCircle, AlertCircle, Trash2, PartyPopper, Tag, MessageSquare } from 'lucide-react';
 import { formatCurrency } from '../utils';
 import { motion, AnimatePresence } from 'motion/react';
+import { ReportErrorModal } from './ReportErrorModal';
+import { Order } from '../types';
+import { db } from '../firebase';
+import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 
 export function OrdersPage() {
-  const { user, cancelOrder, hideOrder, setActiveTab, dismissSupportMessage } = useApp();
+  const { user, orders, cancelOrder, hideOrder, setActiveTab, dismissSupportMessage } = useApp();
   const [cancellingId, setCancellingId] = useState<string | null>(null);
-  
-  const allOrders = user?.history || [];
+  const [reportingOrderId, setReportingOrderId] = useState<string | null>(null);
+  const [reports, setReports] = useState<any[]>([]);
 
+  useEffect(() => {
+    if (!user) return;
+    const q = query(
+      collection(db, 'orderErrors'),
+      where('userId', '==', user.id),
+      orderBy('createdAt', 'desc')
+    );
+    const unsub = onSnapshot(q, (snapshot) => {
+      setReports(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    return () => unsub();
+  }, [user]);
+  
+  const allOrders = orders || [];
+  
   const visibleOrders = allOrders.filter(o => {
     const now = Date.now();
     const twentyFourHours = 24 * 60 * 60 * 1000;
@@ -270,6 +289,45 @@ export function OrdersPage() {
                           )}
                         </div>
                       </div>
+                    )}
+
+                    {/* Report Error Button */}
+                    {(order.status === 'pending' || order.status === 'prepared') && (
+                      <button 
+                        onClick={() => setReportingOrderId(order.id)}
+                        className="text-[10px] font-bold text-amber-500 hover:text-amber-400 mt-2 flex items-center gap-1"
+                      >
+                        <AlertCircle size={12} /> ¿Hay algún error?
+                      </button>
+                    )}
+
+                    {/* Display Reports for this order */}
+                    {reports.filter(r => r.orderId === order.id).map(report => (
+                      <div key={report.id} className={`mt-3 p-3 rounded-xl border ${report.status === 'resolved' ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-amber-500/5 border-amber-500/20'}`}>
+                        <div className="flex justify-between items-center mb-1">
+                          <p className="text-[9px] font-bold uppercase tracking-widest text-neutral-500">Tu Reporte</p>
+                          <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded ${report.status === 'resolved' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-amber-500/20 text-amber-500'}`}>
+                            {report.status === 'resolved' ? 'Resuelto' : 'Pendiente'}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-neutral-600 dark:text-neutral-400 italic mb-2">"{report.description}"</p>
+                        {report.resolution && (
+                          <div className="pt-2 border-t border-white/5">
+                            <p className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest mb-1 flex items-center gap-1">
+                              <MessageSquare size={10} /> Respuesta del Chocotejero
+                            </p>
+                            <p className="text-[10px] text-neutral-800 dark:text-neutral-200 font-medium">{report.resolution}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    
+                    {/* Modal */}
+                    {reportingOrderId === order.id && (
+                      <ReportErrorModal 
+                        order={order} 
+                        onClose={() => setReportingOrderId(null)} 
+                      />
                     )}
 
                     {order.status === 'pending' && (

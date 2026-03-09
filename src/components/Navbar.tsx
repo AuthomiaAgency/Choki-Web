@@ -1,5 +1,5 @@
 import { useApp } from '../context';
-import { Home, User, Tag, Package, Store, Trophy } from 'lucide-react';
+import { Home, User, Tag, Package, Store, Trophy, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export function Navbar() {
@@ -16,7 +16,8 @@ export function Navbar() {
     { id: 'admin-orders', icon: Package, label: 'Pedidos' },
     { id: 'admin-shop', icon: Store, label: 'Tienda' },
     { id: 'admin-promos', icon: Tag, label: 'Promos' },
-    { id: 'profile', icon: User, label: 'Perfil' },
+    { id: 'admin-reports', icon: AlertCircle, label: 'Reportes' },
+    { id: 'admin-profile', icon: User, label: 'Perfil' },
   ];
 
   const tabs = user?.role === 'admin' ? adminTabs : clientTabs;
