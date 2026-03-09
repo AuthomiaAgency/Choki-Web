@@ -24,6 +24,8 @@ export interface Order {
   status: 'pending' | 'prepared' | 'completed' | 'cancelled';
   cancelledBy?: 'client' | 'admin';
   date: string;
+  completedAt?: string;
+  cancelledAt?: string;
   hasPromo?: boolean;
   appliedPromoName?: string;
   promoMultiplier?: number;

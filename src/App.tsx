@@ -15,7 +15,9 @@ import { PromosPage } from './components/PromosPage';
 import { SettingsPage } from './components/SettingsPage';
 import { ChokistorialPage } from './components/ChokistorialPage';
 import { RewardsPage } from './components/RewardsPage';
-import { useState } from 'react';
+import { RankingPage } from './components/RankingPage';
+import { UpdatesModal } from './components/UpdatesModal';
+import { useState, useEffect } from 'react';
 import { Product } from './types';
 import { ShoppingBag, Search, Package, Settings } from 'lucide-react';
 import { Toaster } from 'sonner';
@@ -25,7 +27,6 @@ function AppContent() {
   const { user, products, activeTab, toggleCart, cart, setActiveTab, justAdded, advancedConfig } = useApp();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   
   // Initialize state from URL to prevent flash
   const [showInvitation, setShowInvitation] = useState(() => new URLSearchParams(window.location.search).has('invite'));
@@ -33,6 +34,21 @@ function AppContent() {
   
   const [showLanding, setShowLanding] = useState(false);
   const [landingConfig, setLandingConfig] = useState<any>(null);
+  const [showUpdatesModal, setShowUpdatesModal] = useState(false);
+
+  useEffect(() => {
+    if (user && user.role === 'client') {
+      const hasSeenUpdates = localStorage.getItem('hasSeenUpdates20260308_v4');
+      if (!hasSeenUpdates) {
+        setShowUpdatesModal(true);
+      }
+    }
+  }, [user]);
+
+  const handleCloseUpdates = () => {
+    localStorage.setItem('hasSeenUpdates20260308_v4', 'true');
+    setShowUpdatesModal(false);
+  };
 
   // Redirect admin to orders if on home
   useState(() => {
@@ -191,31 +207,6 @@ function AppContent() {
           </div>
         </div>
         <div className="flex items-center gap-1 sm:gap-2">
-          <AnimatePresence>
-            {isSearchOpen && (
-              <motion.div
-                initial={{ width: 0, opacity: 0 }}
-                animate={{ width: 'auto', opacity: 1 }}
-                exit={{ width: 0, opacity: 0 }}
-                className="overflow-hidden"
-              >
-                <input
-                  type="text"
-                  placeholder="Buscar..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-white/5 rounded-xl px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-primary/50 w-32 sm:w-48"
-                  autoFocus
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
-          <button 
-            onClick={() => setIsSearchOpen(!isSearchOpen)}
-            className={`p-2 transition-colors ${isSearchOpen ? 'text-primary' : 'text-neutral-400 hover:text-neutral-900 dark:hover:text-white'}`}
-          >
-            <Search size={20} />
-          </button>
           {isAdmin ? (
             <button 
               onClick={() => setActiveTab('admin-shop')}
@@ -247,9 +238,23 @@ function AppContent() {
               <h2 className="font-display text-3xl sm:text-5xl font-bold text-neutral-900 dark:text-white mb-0.5 tracking-tight">
                 Hola, {user.name.split(' ')[0]} 👋
               </h2>
-              <p className="text-neutral-500 dark:text-neutral-400 font-medium text-sm sm:text-lg">
+              <p className="text-neutral-500 dark:text-neutral-400 font-medium text-sm sm:text-lg mb-4">
                 ¿Qué dulce momento buscas hoy?
               </p>
+              
+              {/* Search Bar */}
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search size={18} className="text-neutral-400" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Buscar chocolates, sabores..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-white/10 rounded-2xl py-3 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all shadow-sm"
+                />
+              </div>
             </div>
 
             {/* Grid */}
@@ -266,6 +271,7 @@ function AppContent() {
         )}
 
         {activeTab === 'promos' && <PromosPage />}
+        {activeTab === 'ranking' && <RankingPage />}
         {activeTab === 'profile' && <Profile />}
         {activeTab === 'settings' && <SettingsPage />}
         {activeTab === 'chokistorial' && <ChokistorialPage />}
@@ -276,6 +282,7 @@ function AppContent() {
       {!isAdmin && <FloatingCartBar />}
       <ProductModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
       {!isAdmin && <CartDrawer />}
+      {showUpdatesModal && <UpdatesModal onClose={handleCloseUpdates} />}
       <Toaster position="top-center" richColors />
     </div>
   );

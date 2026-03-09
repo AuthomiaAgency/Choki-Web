@@ -57,6 +57,7 @@ interface AppContextType {
   cancelOrder: (orderId: string) => Promise<void>;
   hideOrder: (orderId: string) => Promise<void>;
   deleteOrder: (orderId: string) => Promise<void>;
+  createSpecialOrder: (orderData: Partial<Order>) => Promise<void>;
   requestNotificationPermission: () => Promise<void>;
   sendNotification: (title: string, options?: NotificationOptions) => void;
   toggleTheme: () => void;
@@ -576,6 +577,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return bestPromo;
   };
 
+  const createSpecialOrder = async (orderData: Partial<Order>) => {
+    if (!user) return;
+    try {
+      const newOrder: Omit<Order, 'id'> = {
+        userId: user.id,
+        userName: user.name,
+        items: orderData.items || [],
+        total: orderData.total || 0,
+        status: 'pending',
+        date: new Date().toISOString(),
+        isRedemption: orderData.isRedemption || false,
+        pointsCost: orderData.pointsCost || 0,
+        pointsEarned: 0,
+        ...orderData
+      };
+      
+      const docRef = await addDoc(collection(db, 'orders'), newOrder);
+      
+      // Add to user history
+      const updatedHistory = [{ id: docRef.id, ...newOrder }, ...(user.history || [])];
+      await updateDoc(doc(db, 'users', user.id), { history: updatedHistory });
+      
+      toast.success('Pedido especial creado');
+    } catch (error) {
+      console.error("Error creating special order:", error);
+      throw error;
+    }
+  };
+
   const placeOrder = async () => {
     if (cart.length === 0 || !user || !db) return false;
 
@@ -747,6 +777,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const updateData: any = { status };
       if (status === 'cancelled') {
         updateData.cancelledBy = 'admin';
+        updateData.cancelledAt = new Date().toISOString();
+      } else if (status === 'completed') {
+        updateData.completedAt = new Date().toISOString();
       }
       await updateDoc(doc(db, 'orders', orderId), updateData);
       
@@ -759,9 +792,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const uData = userSnap.data() as User;
 
       // Update local history in user doc
-      const updatedHistory = uData.history.map(h => 
-        h.id === orderId ? { ...h, status } : h
-      );
+      const updatedHistory = uData.history.map(h => {
+        if (h.id === orderId) {
+          return { 
+            ...h, 
+            status, 
+            ...(status === 'completed' ? { completedAt: updateData.completedAt } : {}),
+            ...(status === 'cancelled' ? { cancelledBy: 'admin', cancelledAt: updateData.cancelledAt } : {})
+          };
+        }
+        return h;
+      });
 
       // Handle Completed (Pagado)
       if (status === 'completed' && order.status !== 'completed') {
@@ -1024,6 +1065,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       cancelOrder,
       hideOrder,
       deleteOrder,
+      createSpecialOrder,
       requestNotificationPermission,
       sendNotification,
       updateOrderStatus,

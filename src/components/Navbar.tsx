@@ -1,5 +1,5 @@
 import { useApp } from '../context';
-import { Home, User, Tag, Package, Store } from 'lucide-react';
+import { Home, User, Tag, Package, Store, Trophy } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export function Navbar() {
@@ -8,6 +8,7 @@ export function Navbar() {
   const clientTabs = [
     { id: 'home', icon: Home, label: 'Inicio' },
     { id: 'promos', icon: Tag, label: 'Promos' },
+    { id: 'ranking', icon: Trophy, label: 'Ranking' },
     { id: 'profile', icon: User, label: 'Perfil' },
   ];
 

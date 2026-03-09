@@ -1,19 +1,32 @@
 import { useApp } from '../context';
-import { User, Award, History, LogOut, Moon, Sun, Settings, PieChart as PieChartIcon, Share2, Download, Plus, Trash2, Copy, ExternalLink, X } from 'lucide-react';
+import { User, Award, History, LogOut, Moon, Sun, Settings, PieChart as PieChartIcon, Share2, Download, Plus, Trash2, Copy, ExternalLink, X, Crown, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { formatCurrency } from '../utils';
 import { toast } from 'sonner';
 import { useState } from 'react';
+import { useRanking } from '../hooks/useRanking';
 
 export function Profile() {
-  const { user, orders, theme, toggleTheme, logout, setActiveTab, getTotalRevenue, advancedConfig, addCustomLanding, deleteCustomLanding, deleteOrder } = useApp();
+  const { user, orders, theme, toggleTheme, logout, setActiveTab, getTotalRevenue, advancedConfig, addCustomLanding, deleteCustomLanding, deleteOrder, createSpecialOrder } = useApp();
   const [isCreatingLanding, setIsCreatingLanding] = useState(false);
   const [showCancelled, setShowCancelled] = useState(false);
   const [newLanding, setNewLanding] = useState({ name: '', welcomeMessage: '', buttonText: '', slug: '' });
+  const [showPrizeModal, setShowPrizeModal] = useState(false);
+  const { getRankingData } = useRanking();
 
   if (!user) return null;
 
+  const rankingData = getRankingData('points');
+  const isWinner = rankingData.length > 0 && rankingData[0].id === user.id;
+  const winnerName = rankingData.length > 0 ? rankingData[0].name : null;
+
   const isAdmin = user.role === 'admin';
+  const hasClaimedPrize = user.history?.some(o => 
+    o.items.some(i => i.id === 'prize-custom-chocoteja') && 
+    o.status !== 'cancelled'
+  );
+  const showClaimButton = isWinner && !hasClaimedPrize;
+
   const pointsToNextReward = 150 - (user.points % 150);
   const progress = Math.min(100, (user.points % 150) / 150 * 100);
   const canRedeem = user.points >= 150;
@@ -60,17 +73,95 @@ export function Profile() {
     toast.success('Enlace de landing copiado');
   };
 
+  const handleClaimPrize = async () => {
+    try {
+      await createSpecialOrder({
+        items: [{
+          id: 'prize-custom-chocoteja',
+          name: 'REGALO ESPECIAL CHOCOTEJA PERSONALIZADA',
+          price: 0,
+          quantity: 1,
+          image: 'https://copilot.microsoft.com/th/id/BCO.0422c8a8-09b8-4328-bec7-f147697257f1.png',
+          category: 'Especial'
+        }],
+        total: 0,
+        isRedemption: true,
+        pointsCost: 0
+      });
+      window.open('https://wa.link/ssc6u5', '_blank');
+      setShowPrizeModal(false);
+    } catch (e) {
+      toast.error('Error al reclamar el premio');
+    }
+  };
+
   return (
     <div className="pb-24 px-4 sm:px-6 pt-6 sm:pt-8">
+      <AnimatePresence>
+        {showPrizeModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-neutral-950/60 backdrop-blur-sm"
+              onClick={() => setShowPrizeModal(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-sm bg-white dark:bg-neutral-900 rounded-[2rem] shadow-2xl p-8 flex flex-col items-center text-center z-10"
+            >
+              <button 
+                onClick={() => setShowPrizeModal(false)}
+                className="absolute top-4 right-4 p-2 bg-black/5 dark:bg-white/5 rounded-full text-neutral-500 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+              >
+                <X size={20} />
+              </button>
+              
+              <div className="w-20 h-20 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mb-6 shadow-lg shadow-yellow-500/30">
+                <Crown size={40} className="text-white fill-white" />
+              </div>
+              
+              <h2 className="font-display text-2xl font-bold text-neutral-900 dark:text-white mb-2">¡Felicidades Rey Chocotejero!</h2>
+              <p className="text-neutral-600 dark:text-neutral-400 text-sm mb-8 leading-relaxed">
+                Tienes la posibilidad de hacer una chocoteja personalizada con todos los sabores y recursos que quieras, ¡totalmente gratis!
+              </p>
+              
+              <button 
+                onClick={handleClaimPrize}
+                className="w-full py-4 bg-primary text-neutral-950 font-bold font-display rounded-2xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
+              >
+                <Sparkles size={20} />
+                Reclamar y Crear
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <div className="flex flex-col items-center mb-8 sm:mb-10">
-        <div className="relative mb-4 sm:mb-6">
-          <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-[2rem] sm:rounded-[2.5rem] p-1 border-4 border-primary/20 bg-white dark:bg-neutral-900 shadow-xl">
+        <div 
+          className={`relative mb-4 sm:mb-6 ${isWinner ? 'cursor-pointer' : ''}`}
+          onClick={() => isWinner && setShowPrizeModal(true)}
+        >
+          <div className={`w-24 h-24 sm:w-32 sm:h-32 rounded-[2rem] sm:rounded-[2.5rem] p-1 border-4 ${isWinner ? 'border-yellow-400 shadow-[0_0_30px_rgba(250,204,21,0.4)]' : 'border-primary/20'} bg-white dark:bg-neutral-900 shadow-xl transition-all hover:scale-105`}>
             <img 
               src={user.avatar} 
               alt={user.name} 
-              className="w-full h-full rounded-[1.8rem] sm:rounded-[2rem] object-cover"
+              className="w-full h-full rounded-[1.8rem] sm:rounded-[2rem] object-cover animate-pulse"
             />
           </div>
+          {isWinner && (
+            <motion.div 
+              animate={{ y: [0, -5, 0] }} 
+              transition={{ repeat: Infinity, duration: 2 }}
+              className="absolute -top-6 -right-4 sm:-top-8 sm:-right-6 rotate-12"
+            >
+              <Crown size={40} className="text-yellow-400 fill-yellow-400 drop-shadow-lg" />
+            </motion.div>
+          )}
           {isAdmin && (
             <div className="absolute -bottom-2 -right-2 bg-primary text-neutral-950 px-3 py-1 rounded-full border-4 border-neutral-50 dark:border-neutral-950 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest shadow-lg">
               Admin
@@ -81,6 +172,11 @@ export function Profile() {
         <p className="text-neutral-500 dark:text-neutral-400 text-sm sm:text-base font-medium">
           {isAdmin ? 'Director de Imperio Choki 👑' : 'Amante de las Chocotejas ✨'}
         </p>
+        {!isWinner && winnerName && (
+          <p className="text-primary text-xs sm:text-sm font-bold mt-2">
+            🏆 Rey actual: {winnerName}
+          </p>
+        )}
       </div>
 
       {/* ChokiPoints / ChokiIngresos Card */}
@@ -225,6 +321,38 @@ export function Profile() {
           )}
         </div>
       </motion.div>
+
+      {showClaimButton && (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-[2rem] p-6 text-white shadow-xl relative overflow-hidden"
+        >
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-2xl -mr-10 -mt-10" />
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                <Crown size={24} className="text-yellow-100" />
+              </div>
+              <div>
+                <h3 className="font-display font-bold text-xl">¡Eres el Rey Chocotejero!</h3>
+                <p className="text-yellow-100 text-[10px] font-bold uppercase tracking-widest">Premio Mensual</p>
+              </div>
+            </div>
+            <p className="text-yellow-50 text-sm mb-5 leading-relaxed">
+              Tienes una chocoteja personalizada gratis esperando por ti. <br/>
+              <span className="font-bold">Vence en 20 días.</span>
+            </p>
+            <button 
+              onClick={() => setShowPrizeModal(true)}
+              className="w-full py-3.5 bg-white text-yellow-600 font-bold font-display rounded-xl shadow-lg hover:bg-yellow-50 transition-colors active:scale-95 flex items-center justify-center gap-2"
+            >
+              <Sparkles size={18} />
+              Reclamar Chocoteja Personalizada
+            </button>
+          </div>
+        </motion.div>
+      )}
 
       {/* Admin Advanced Config Section */}
       {isAdmin && (

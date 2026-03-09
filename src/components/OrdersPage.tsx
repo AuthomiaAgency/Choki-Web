@@ -10,7 +10,22 @@ export function OrdersPage() {
   
   const allOrders = user?.history || [];
 
-  const visibleOrders = allOrders;
+  const visibleOrders = allOrders.filter(o => {
+    const now = Date.now();
+    const twentyFourHours = 24 * 60 * 60 * 1000;
+
+    if (o.status === 'completed') {
+      const completedTime = o.completedAt ? new Date(o.completedAt).getTime() : new Date(o.date).getTime();
+      return now - completedTime < twentyFourHours;
+    }
+    
+    if (o.status === 'cancelled') {
+      const cancelledTime = o.cancelledAt ? new Date(o.cancelledAt).getTime() : new Date(o.date).getTime();
+      return now - cancelledTime < twentyFourHours;
+    }
+
+    return true; // pending, prepared
+  });
 
   // Sort orders: Pending/Prepared first, then Completed
   const sortedOrders = [...visibleOrders].sort((a, b) => {

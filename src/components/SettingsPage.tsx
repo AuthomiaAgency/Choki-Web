@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context';
-import { ArrowLeft, Camera, User, Mail, Lock, Eye, EyeOff, CheckCircle2, Moon, Sun, Download, Smartphone, Bell, ShoppingBag, ChevronDown, ChevronUp, Save, Tag } from 'lucide-react';
+import { ArrowLeft, Camera, User, Mail, Lock, Eye, EyeOff, CheckCircle2, Moon, Sun, Download, Smartphone, Bell, ShoppingBag, ChevronDown, ChevronUp, Save, Tag, Upload } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
+import { CHOCOLATE_AVATARS } from '../utils';
 
 export function SettingsPage() {
   const { user, updateUserName, updateUser, setActiveTab, theme, toggleTheme, requestNotificationPermission } = useApp();
@@ -102,6 +103,23 @@ export function SettingsPage() {
     }
   };
 
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error('La imagen no debe superar los 2MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        updateUser({ avatar: base64String });
+        toast.success('Avatar actualizado');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 pb-32">
       <header className="sticky top-0 z-30 bg-neutral-50/80 dark:bg-neutral-950/80 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-neutral-200 dark:border-white/5">
@@ -118,26 +136,34 @@ export function SettingsPage() {
         {/* Profile Photo */}
         <section className="flex flex-col items-center">
           <div className="relative group">
-            <div className="w-32 h-32 rounded-[2.5rem] overflow-hidden border-4 border-primary/20 p-1">
+            <div className="w-32 h-32 rounded-[2.5rem] overflow-hidden border-4 border-primary/20 p-1 relative bg-white dark:bg-neutral-900">
               <img 
                 src={user?.avatar} 
                 alt={user?.name} 
                 className="w-full h-full object-cover rounded-[2rem]"
               />
+              <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-[2rem] m-1">
+                <Upload className="text-white" size={24} />
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden" 
+                  onChange={handleAvatarUpload}
+                />
+              </label>
             </div>
           </div>
-          <p className="mt-4 text-xs text-neutral-500 font-bold uppercase tracking-widest mb-4">Elige tu avatar</p>
+          <p className="mt-4 text-xs text-neutral-500 font-bold uppercase tracking-widest mb-4">Elige tu avatar o sube uno</p>
           
           <div className="grid grid-cols-5 gap-3">
-            {Array.from({ length: 10 }).map((_, i) => {
-              const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${i + 123}`;
+            {CHOCOLATE_AVATARS.map((avatarUrl, i) => {
               return (
                 <button
                   key={i}
                   onClick={() => {
                     updateUser({ avatar: avatarUrl });
                   }}
-                  className={`w-12 h-12 rounded-xl overflow-hidden border-2 transition-all ${user?.avatar === avatarUrl ? 'border-primary scale-110 shadow-lg shadow-primary/20' : 'border-transparent hover:border-white/20'}`}
+                  className={`w-12 h-12 rounded-xl overflow-hidden border-2 transition-all bg-neutral-100 dark:bg-neutral-800 ${user?.avatar === avatarUrl ? 'border-primary scale-110 shadow-lg shadow-primary/20' : 'border-transparent hover:border-white/20'}`}
                 >
                   <img src={avatarUrl} alt={`Avatar ${i}`} className="w-full h-full object-cover" />
                 </button>
