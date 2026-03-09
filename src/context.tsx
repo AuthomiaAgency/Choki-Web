@@ -196,14 +196,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
         
         const now = new Date();
         const endDate = data.seasonEndDate ? new Date(data.seasonEndDate) : null;
+        const isNotFirstDay = endDate && (endDate.getUTCDate() !== 1 || endDate.getUTCHours() !== 5);
 
-        // Initialize seasonEndDate if missing
-        if (!data.seasonEndDate || !data.seasonStartDate) {
-          const defaultStartDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        // Initialize seasonEndDate if missing or if it's not the 1st of the month
+        if (!data.seasonEndDate || !data.seasonStartDate || isNotFirstDay) {
+          const defaultStartDate = data.seasonStartDate || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
           const defaultEndDate = getNextMonthFirstDay();
           await setDoc(doc(db, 'settings', 'advanced'), { 
-            seasonEndDate: data.seasonEndDate || defaultEndDate,
-            seasonStartDate: data.seasonStartDate || defaultStartDate
+            seasonEndDate: defaultEndDate,
+            seasonStartDate: defaultStartDate
           }, { merge: true });
         } else if (endDate && now > endDate) {
           // AUTOMATIC RESET: Season is over

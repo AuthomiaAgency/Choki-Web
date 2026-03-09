@@ -35,9 +35,22 @@ export function calculateSeasonWinner(users: User[], seasonStartDate: string) {
 
 export function getNextMonthFirstDay() {
   const now = new Date();
-  // Create a date for the 1st day of the next month at 00:00:00
-  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0);
-  return nextMonth.toISOString();
+  
+  // Get current time in UTC
+  const utcTime = now.getTime();
+  
+  // Shift to Peru Time (UTC-5)
+  const peruTime = new Date(utcTime - (5 * 60 * 60 * 1000));
+  
+  // Calculate the next month in Peru Time
+  const nextYear = peruTime.getUTCMonth() === 11 ? peruTime.getUTCFullYear() + 1 : peruTime.getUTCFullYear();
+  const nextMonth = (peruTime.getUTCMonth() + 1) % 12;
+  
+  // Create the date for the 1st of the next month at 00:00:00 Peru Time
+  // Which is 05:00:00 UTC
+  const nextMonthDate = new Date(Date.UTC(nextYear, nextMonth, 1, 5, 0, 0));
+  
+  return nextMonthDate.toISOString();
 }
 
 export function getChocolateAvatar(id: number) {
