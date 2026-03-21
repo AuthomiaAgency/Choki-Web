@@ -3,6 +3,7 @@ import { CartItem, Order, Product, User, PRODUCTS, Promo, ChokiPointTransaction,
 import { toast } from 'sonner';
 import { auth, db } from './firebase';
 import { formatCurrency, calculateSeasonWinner, getNextMonthFirstDay } from './utils';
+import { RANKING_START_DATE } from './constants';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
@@ -1067,18 +1068,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const getTotalRevenue = () => {
+    const seasonStart = new Date(advancedConfig?.seasonStartDate || RANKING_START_DATE);
     return orders
-      .filter(o => o.status === 'completed')
+      .filter(o => o.status === 'completed' && new Date(o.date) >= seasonStart)
       .reduce((sum, o) => sum + o.total, 0);
   };
 
   const getSectorizedSales = () => {
     const sales: Record<string, number> = {};
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const seasonStart = new Date(advancedConfig?.seasonStartDate || RANKING_START_DATE);
 
     orders
-      .filter(o => o.status === 'completed' && new Date(o.date) >= thirtyDaysAgo)
+      .filter(o => o.status === 'completed' && new Date(o.date) >= seasonStart)
       .forEach(o => {
         o.items.forEach(item => {
           // Use product name as category since category is removed

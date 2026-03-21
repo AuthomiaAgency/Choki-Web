@@ -43,7 +43,7 @@ export function RankingPage() {
   };
 
   const handleSendScreenshot = async () => {
-    const whatsappNumber = "51999999999"; 
+    const whatsappNumber = "51917342732"; 
     const message = encodeURIComponent("¡Hola! Soy el rey de la temporada en ChocoApp y aquí está mi captura de pantalla para reclamar mi premio.");
     window.open(`https://wa.me/${whatsappNumber}?text=${message}`, '_blank');
     

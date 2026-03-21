@@ -82,7 +82,7 @@ export const useRanking = () => {
     } else if (activeTab === 'points') {
       data = activeUsers.map(u => {
         const pointsEarned = (u.pointHistory || [])
-          .filter(tx => new Date(tx.date) >= new Date(seasonStartDate) && tx.amount > 0)
+          .filter(tx => new Date(tx.date) >= new Date(seasonStartDate) && tx.type !== 'spent')
           .reduce((sum, tx) => sum + tx.amount, 0);
           
         return {
@@ -95,11 +95,12 @@ export const useRanking = () => {
       });
     } else if (activeTab === 'redemptions') {
       data = activeUsers.map(u => {
-        const redemptions = u.history.filter(o => 
+        const completedRedemptions = u.history.filter(o => 
           o.status === 'completed' && 
           o.isRedemption &&
           new Date(o.date) >= new Date(seasonStartDate)
-        ).length;
+        );
+        const redemptions = completedRedemptions.reduce((sum, o) => sum + o.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0);
         return {
           id: u.id,
           name: u.id === currentUserId ? 'Tú' : u.name,
